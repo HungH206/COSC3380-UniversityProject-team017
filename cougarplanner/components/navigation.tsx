@@ -27,7 +27,7 @@ export function Navigation({ isAdmin = false }: { isAdmin?: boolean }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <BookOpen className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-lg font-semibold">StudyPlanner</span>
+              <span className="text-lg font-semibold">CougarPlanner</span>
             </Link>
 
             <div className="hidden md:flex md:gap-1">

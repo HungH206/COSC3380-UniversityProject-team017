@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Calendar, CheckCircle, CreditCard } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
+
 
 export default function HomePage() {
   return (
@@ -11,6 +13,15 @@ export default function HomePage() {
 
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center">
+          <div className="mb-8 flex justify-center">
+            <Image
+              src="/logo.png"
+              alt="Academic mascot with graduation cap"
+              width={200}
+              height={200}
+              className="rounded-lg"
+            />
+          </div>
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
             Plan Your Academic Journey
           </h1>
