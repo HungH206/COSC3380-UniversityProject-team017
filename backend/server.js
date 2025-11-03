@@ -3,6 +3,7 @@ import cors from "cors";
 import { pool } from "./db.js";
 import cartRoutes from "./routes/cart.js";
 import paymentRoutes from "./routes/payment.js";
+import transactionsRoutes from "./routes/transactions.js";
 
 const app = express();
 app.use(cors({ origin: "http://localhost:3000" }));
@@ -41,5 +42,6 @@ app.use("/api/cart", cartRoutes);
 
 app.use("/api/payment", paymentRoutes);
 
+app.use("/api/transactions", transactionsRoutes);
 
 app.listen(3001, () => console.log("Server running at http://localhost:3001"));
