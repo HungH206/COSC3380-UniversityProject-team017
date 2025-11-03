@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🎓 University Enrollment & Management System
 
-## Getting Started
+Built with Next.js, TypeScript, and PostgreSQL
 
-First, run the development server:
+A full-stack database-driven web application that simulates a university enrollment system, allowing students to browse the course catalog, register for classes (with prerequisite validation), view their enrolled courses, and process tuition transactions.
 
-```bash
+This project was developed as part of University of Houston’s COSC 3380 – Database Systems (Team 017) to demonstrate relational database design, normalization, and system integration with a web interface.
+
+🧠 Purpose
+
+The goal of this project is to replicate the functionality of a real university registration portal — such as PeopleSoft or UH Access — in a simplified, academic form.
+
+The system helps students:
+
+- Browse the university course catalog
+
+- Check course prerequisites before enrolling
+
+- Enroll classes
+
+- Make payments and track transactions for enrolled courses
+
+- View their academic summary (total credits, enrolled hours, etc.)
+
+Meanwhile, it demonstrates:
+
+Proper database normalization (BCNF)
+
+Use of foreign keys and referential integrity
+
+Integration between a PostgreSQL backend and a Next.js frontend
+
+🗂️ Core Database Design
+
+The backend database follows a relational schema designed to handle multiple entities and relationships in a university system.
+
+Main Entities and Entity Description
+Student: Stores student details and IDs
+Course:	Contains course information such as title, credits, and department
+Prerequisite: Defines prerequisite relationships between courses
+ClassSection: Represents individual course offerings per semester
+Enrollment: Tracks which students are enrolled in which sections
+Payment: Records tuition and transaction history per student
+
+The schema was designed using ER modeling, normalized up to BCNF, and implemented in PostgreSQL to ensure data consistency and efficient queries.
+
+⚙️ Key Features
+
+Course Catalog:
+Students can view all available courses, credits, prerequisites and departments.
+
+Prerequisite Validation:
+When enrolling, the system checks if required courses are completed.
+
+Enrollment Management:
+Students can enroll, drop, or update their class selections.
+
+Transaction System:
+Automatically generates tuition charges based on enrolled credits and stores payments.
+
+Student Dashboard:
+Displays enrolled classes, total credits, and payment summary.
+
+🛠️ Tech Stack
+Layer	Tools
+Frontend	Next.js (App Router), TypeScript, React Components
+Backend	Node.js API routes, PostgreSQL
+Database Design	ERD → BCNF normalization → SQL DDL & DML
+Styling	TailwindCSS, shadcn/ui
+Deployment	Vercel
+Version Control	Git & GitHub PR workflow
+
+🚀 Getting Started
+Clone and install dependencies:
+git clone https://github.com/yourusername/COSC3380-UniversityProject-team017.git
+cd COSC3380-UniversityProject-team017
+npm install
+
+Start the development server:
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000
+ to access the web interface.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+📚 Learning Outcomes
 
-## Learn More
+This project demonstrates:
 
-To learn more about Next.js, take a look at the following resources:
+Designing a relational database schema for real-world business rules
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Implementing foreign keys, joins, and referential integrity
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Creating dynamic front-end interfaces linked to SQL queries
 
-## Deploy on Vercel
+Performing end-to-end testing between client and database layers
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Understanding transactional workflows in web systems
