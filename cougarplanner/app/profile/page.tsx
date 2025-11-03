@@ -40,7 +40,7 @@ export default function ProfilePage() {
 
   const fetchEnrolledCourses = async () => {
     try {
-      const response = await fetch("/api/enrollments")
+      const response = await fetch("http://localhost:3001/api/enrollments")
       if (!response.ok) throw new Error("Failed to fetch enrollments")
 
       const data = await response.json()
@@ -62,8 +62,8 @@ export default function ProfilePage() {
   const creditsRequired = 120
   const completionPercentage = (creditsCompleted / creditsRequired) * 100
 
-  const currentSemester = "Spring 2025"
-  const nextSemester = "Fall 2025"
+  const currentSemester = "Fall 2025"
+  const nextSemester = "Spring 2026"
   const currentCourses = enrolledCourses[currentSemester] || []
   const nextCourses = enrolledCourses[nextSemester] || []
 
