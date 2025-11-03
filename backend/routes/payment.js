@@ -3,57 +3,58 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
-// Perform checkout
-router.post("/checkout", async (req, res) => {
-  const { student_id } = req.body;
-  const client = await pool.connect();
+// Make a payment
+router.post("/", async (req, res) => {
+  const { studentid, total, paymentMethod} = req.body;
 
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // 1 Get total from cart
-    const cartTotal = await client.query(
-      `SELECT SUM(c.credits * 350) AS total
-       FROM cart ct
-       JOIN courses c ON ct.course_id = c.id
-       WHERE ct.student_id = $1`,
-      [student_id]
+    // Get current balance
+    const { rows } = await client.query(
+      "SELECT balance FROM bankaccount WHERE studentid = 'S001'",
+      [studentid]
     );
 
-    const totalAmount = Number(cartTotal.rows[0].total || 0);
-    if (totalAmount === 0) throw new Error("Cart is empty.");
+    if (rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Student not found" });
+    }
 
-    // Check bank balance
-    const balanceCheck = await client.query(
-      "SELECT balance FROM bankaccount WHERE student_id=$1",
-      [student_id]
-    );
-    const balance = Number(balanceCheck.rows[0]?.balance || 0);
+    const currentBalance = parseFloat(rows[0].balance);
+    if (currentBalance < total) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Insufficient funds" });
+    }
 
-    if (balance < totalAmount)
-      throw new Error("Insufficient funds in your account.");
-
-    // Deduct balance
+    // 2️ Deduct from balance & increase amount due
+    const newBalance = currentBalance - total;
     await client.query(
-      "UPDATE bankaccount SET balance = balance - $1 WHERE student_id = $2",
-      [totalAmount, student_id]
+      "UPDATE bankaccount SET balance = 1, amountdue = amountdue + 2 WHERE studentid = 'S001'",
+      [newBalance, total, studentid]
     );
 
-    // Record payment
-    await client.query(
-      "INSERT INTO payment (student_id, total_amount) VALUES ($1, $2)",
-      [student_id, totalAmount]
+    //  Insert into transactions
+    const result = await client.query(
+      `INSERT INTO transactions (studentid, amount, paymentmethod, status)
+       VALUES ('S001', 2, 3, 'Completed')
+       RETURNING *`,
+      [studentid, total, paymentMethod]
     );
-
-    // Clear cart
-    await client.query("DELETE FROM cart WHERE student_id = $1", [student_id]);
 
     await client.query("COMMIT");
-    res.json({ message: "Payment successful", totalAmount });
+
+    console.log("[v0] Payment processed:", result.rows[0].transactionid);
+    return res.json({
+      success: true,
+      transaction: result.rows[0],
+      message: "Payment successful",
+    });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("Transaction error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error processing payment:", err);
+    return res.status(500).json({ error: "Failed to process payment" });
   } finally {
     client.release();
   }

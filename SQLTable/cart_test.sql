@@ -1,0 +1,6 @@
+CREATE TABLE cart (
+  cart_id SERIAL PRIMARY KEY,
+  student_id INT NOT NULL,
+  course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

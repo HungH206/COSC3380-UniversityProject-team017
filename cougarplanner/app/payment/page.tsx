@@ -69,10 +69,11 @@ export default function PaymentPage() {
       const fees = 450
       const total = tuitionTotal + fees
 
-      const transactionResponse = await fetch("/api/transactions", {
+      const transactionResponse = await fetch("http://localhost:3001/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          student_id: "S001",
           cartItems,
           total,
           paymentMethod: "Credit Card",
@@ -82,7 +83,19 @@ export default function PaymentPage() {
       if (!transactionResponse.ok) throw new Error("Payment failed")
 
       const transactionData = await transactionResponse.json()
-      setLastTransaction(transactionData.transaction)
+      
+      // Create transaction object for UI
+      const transaction: Transaction = {
+        id: transactionData.transactionId || `txn_${Date.now()}`,
+        invoiceNumber: `INV-${Date.now()}`,
+        date: new Date().toISOString(),
+        amount: total,
+        paymentMethod: "Credit Card",
+        status: "completed",
+        courses: cartItems
+      }
+      
+      setLastTransaction(transaction)
 
       await fetch("/api/enrollments", {
         method: "POST",

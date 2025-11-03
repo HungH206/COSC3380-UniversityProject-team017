@@ -8,26 +8,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Award, BookOpen, TrendingUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
-
-interface StudentInfo {
-  name: string
-  studentId: string
-  email: string
-  major?: string
-  minor?: string
-  currentStatus: string
-  degreeProgress?: number
-  gpa?: number
-  achievements?: string[]
-}
+import { getDefaultStudent, Student } from "@/lib/default-student"
 
 interface Course {
+  id?: string
   code: string
   name: string
   credits: number
   grade?: string
   gradePoints?: number
+  instructor?: string
+  schedule?: string
+  price?: number
 }
 
 interface EnrolledCourses {
@@ -35,24 +27,16 @@ interface EnrolledCourses {
 }
 
 export default function ProfilePage() {
-  const router = useRouter()
-  const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null)
+  const [studentInfo, setStudentInfo] = useState<Student>(getDefaultStudent())
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourses>({})
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Check if user is logged in
-    const storedStudent = localStorage.getItem("student")
-    if (!storedStudent) {
-      router.push("/login")
-      return
-    }
-
-    const student = JSON.parse(storedStudent)
+    const student = getDefaultStudent()
     setStudentInfo(student)
     fetchEnrolledCourses()
-  }, [router])
+  }, [])
 
   const fetchEnrolledCourses = async () => {
     try {
@@ -72,14 +56,6 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (!studentInfo) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    )
   }
 
   const creditsCompleted = studentInfo.degreeProgress || 0
@@ -238,7 +214,7 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {currentCourses.map((course: Course & { id?: string; instructor?: string; schedule?: string; price?: number }) => (
+                        {currentCourses.map((course: Course) => (
                           <div
                             key={course.id}
                             className="flex items-center justify-between rounded-lg border border-border p-4"
@@ -297,7 +273,7 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {nextCourses.map((course: Course & { id?: string; instructor?: string; schedule?: string; price?: number }) => (
+                        {nextCourses.map((course: Course) => (
                           <div
                             key={course.id}
                             className="flex items-center justify-between rounded-lg border border-border p-4"
