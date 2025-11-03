@@ -1,20 +1,16 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-// uncomment below when CourseCard is ready
 import { CourseCard } from "@/components/course-card"
 import { CourseFilters } from "@/components/course-filters"
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 
-// Mock student completed courses (this would come from user session in production)
-const completedCourses = ["CS101", "MATH101", "ENG101"]
-
 interface Course {
-  course_id: number
-  course_code: string
-  course_name: string
+  id: string
+  code: string
+  name: string
   department: string
   credits: number
   semester: string
@@ -23,8 +19,9 @@ interface Course {
   location: string
   capacity: number
   enrolled: number
-  prerequisites: string | null
+  prerequisites: Array<{ code: string; name: string }>
   description: string
+  available: boolean
 }
 
 export default function CatalogPage() {
@@ -47,7 +44,6 @@ export default function CatalogPage() {
         const params = new URLSearchParams()
         if (selectedDepartment !== "all") params.append("department", selectedDepartment)
         if (selectedSemester !== "all") params.append("semester", selectedSemester)
-        if (showAvailableOnly) params.append("availability", "open")
 
         const response = await fetch(`/api/courses?${params.toString()}`)
 
@@ -66,21 +62,36 @@ export default function CatalogPage() {
     }
 
     fetchCourses()
-  }, [selectedDepartment, selectedSemester, showAvailableOnly])
+  }, [selectedDepartment, selectedSemester])
 
-  // Filter courses based on search and eligibility
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
-     // course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.course_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.instructor.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const prerequisiteCodes = course.prerequisites ? course.prerequisites.split(",").map((p) => p.trim()) : []
-    const isEligible = prerequisiteCodes.every((prereq) => completedCourses.includes(prereq))
-    const matchesEligible = !showEligibleOnly || isEligible
-
-    return matchesSearch && matchesEligible
+    return matchesSearch
   })
+
+  const handleAddToCart = async (courseId: number) => {
+  try {
+    const response = await fetch("http://localhost:3001/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ student_id: 1, course_id: courseId }),
+    });
+    
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add course to cart")
+      }
+
+      alert("✅ Course added to cart!")
+    } catch (err) {
+      console.error("Add to cart error:", err)
+      alert("❌ Could not add course to cart")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,9 +100,7 @@ export default function CatalogPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-balance">Course Catalog</h1>
-          <p className="mt-2 text-muted-foreground text-pretty">
-            Browse available courses and check your eligibility based on prerequisites
-          </p>
+          <p className="mt-2 text-muted-foreground text-pretty">Browse available courses and add them to your cart</p>
         </div>
 
         <div className="mb-6">
@@ -131,7 +140,7 @@ export default function CatalogPage() {
               <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
                 <p className="text-destructive">{error}</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Make sure your DATABASE_URL environment variable is set correctly
+                  Make sure your NEON_DATABASE_URL environment variable is set correctly
                 </p>
               </div>
             ) : (
@@ -142,22 +151,33 @@ export default function CatalogPage() {
 
                 <div className="grid gap-4">
                   {filteredCourses.map((course) => {
-                    const prerequisiteCodes = Array.isArray(course.prerequisites)? course.prerequisites.map((p) => p.code)
-  : course.prerequisites ? course.prerequisites.split(",").map((p) => p.trim()): []
-
-                    const isEligible = prerequisiteCodes.every((prereq) => completedCourses.includes(prereq))
-                    const isAvailable = course.enrolled < course.capacity
+                    const prerequisiteCodes = Array.isArray(course.prerequisites) 
+                      ? course.prerequisites.map((p) => p.code)
+                      : []
+                    const isAvailable = course.available
 
                     return (
                       <CourseCard
-                        key={course.course_id}
+                        key={course.id}
                         course={{
-                          ...course,
+                          course_id: parseInt(course.id),
+                          course_code: course.code,
+                          course_name: course.name,
+                          department: course.department,
+                          credits: course.credits,
+                          semester: course.semester,
+                          instructor: course.instructor,
+                          schedule: course.schedule,
+                          location: course.location,
+                          capacity: course.capacity,
+                          enrolled: course.enrolled,
                           prerequisites: prerequisiteCodes,
+                          description: course.description,
                         }}
-                        isEligible={isEligible}
+                        isEligible={true}
                         isAvailable={isAvailable}
-                        completedCourses={completedCourses}
+                        completedCourses={[]}
+                        onAddToCart={() => handleAddToCart(parseInt(course.id))}
                       />
                     )
                   })}

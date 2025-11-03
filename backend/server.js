@@ -1,9 +1,11 @@
 import express from "express";
 import cors from "cors";
 import { pool } from "./db.js";
+import cartRoutes from "./routes/cart.js";
+import paymentRoutes from "./routes/payment.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
 
 // Add this route
@@ -34,4 +36,10 @@ app.get("/api/Courses", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.use("/api/cart", cartRoutes);
+
+app.use("/api/payment", paymentRoutes);
+
+
 app.listen(3001, () => console.log("Server running at http://localhost:3001"));

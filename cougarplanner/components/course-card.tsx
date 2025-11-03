@@ -17,9 +17,10 @@ interface CourseCardProps {
   isEligible: boolean
   isAvailable: boolean
   completedCourses: string[]
+  onAddToCart?: (courseId: number) => void
 }
 
-export function CourseCard({ course, isEligible, isAvailable }: CourseCardProps) {
+export function CourseCard({ course, isEligible, isAvailable, onAddToCart }: CourseCardProps) {
   return (
     <div className="rounded-lg border bg-card p-6">
       <div className="flex items-start justify-between">
@@ -57,6 +58,15 @@ export function CourseCard({ course, isEligible, isAvailable }: CourseCardProps)
           <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800">Available</span>
         ) : (
           <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800">Full</span>
+        )}
+        
+        {onAddToCart && (
+          <button
+            className="ml-auto rounded bg-primary px-3 py-1 text-xs text-primary-foreground hover:bg-primary/90"
+            onClick={() => onAddToCart(course.course_id)}
+          >
+            Add to Cart
+          </button>
         )}
       </div>
     </div>

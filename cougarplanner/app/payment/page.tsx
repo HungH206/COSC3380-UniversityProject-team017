@@ -44,7 +44,7 @@ export default function PaymentPage() {
 
   const fetchCartItems = async () => {
     try {
-      const response = await fetch("/api/cart")
+      const response = await fetch("http://localhost:3001/api/cart")
       if (!response.ok) throw new Error("Failed to fetch cart")
 
       const data = await response.json()

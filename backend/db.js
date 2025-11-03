@@ -8,7 +8,7 @@ const { Pool } = pkg;
 export const pool = new Pool({
   host: "localhost",
   port: 5432,
-  database: "coursedb",  // or your custom DB (coursedb)
+  database: "universitydb",  // or your custom DB (coursedb)
   user: "postgres",
   password: "2006hung",
 });

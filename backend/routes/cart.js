@@ -1,63 +1,59 @@
-// backend/routes/cart.js
 import express from "express";
+import { pool } from "../db.js";
 
 const router = express.Router();
 
-// Mock cart data — in production, this would be a database table
-let cartItems = [];
-
-// GET - fetch all cart items
-router.get("/", (req, res) => {
+// Add course to cart
+router.post("/", async (req, res) => {
+  const { student_id, course_id } = req.body;
   try {
-    res.json({ items: cartItems });
-  } catch (error) {
-    console.error("Error fetching cart:", error);
+    await pool.query(
+      "INSERT INTO cart (student_id, course_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [student_id, course_id]
+    );
+    res.json({ message: "Course added to cart" });
+  } catch (err) {
+    console.error("Error adding to cart:", err);
+    res.status(500).json({ error: "Failed to add to cart" });
+  }
+});
+// Get all cart items (default endpoint)
+router.get("/", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT ct.cart_id AS id, c.code, c.name, c.credits, c.department, c.instructor, c.schedule,
+             CASE 
+               WHEN c.credits = 1 THEN 350
+               WHEN c.credits = 3 THEN 1050
+               WHEN c.credits = 4 AND c.department IN ('Physics', 'Biology', 'Chemistry') THEN 1400
+               ELSE c.credits * 350
+             END AS price
+      FROM cart ct
+      JOIN courses c ON ct.course_id = c.id
+    `);
+
+    res.json({ items: result.rows });
+  } catch (err) {
+    console.error("Error fetching all cart items:", err);
     res.status(500).json({ error: "Failed to fetch cart" });
   }
 });
 
-// POST - add a new item to cart
-router.post("/", (req, res) => {
+// View cart items with course info
+router.get("/:student_id", async (req, res) => {
+  const { student_id } = req.params;
   try {
-    const course = req.body;
-
-    // check if course already exists in cart
-    const existingIndex = cartItems.findIndex(
-      (item) => item.course_id === course.course_id
+    const result = await pool.query(
+      `SELECT c.id, c.code, c.name, c.credits, c.department, c.semester, c.instructor, c.cost
+       FROM cart ct
+       JOIN courses c ON ct.course_id = c.id
+       WHERE ct.student_id = $1`,
+      [student_id]
     );
-
-    if (existingIndex >= 0) {
-      return res.status(400).json({ error: "Course already in cart" });
-    }
-
-    cartItems.push(course);
-    console.log("✅ Added to cart:", course.course_code);
-
-    res.json({ items: cartItems });
-  } catch (error) {
-    console.error("Error adding to cart:", error);
-    res.status(500).json({ error: "Failed to add to cart" });
-  }
-});
-
-// DELETE - remove a course by id
-router.delete("/", (req, res) => {
-  try {
-    const courseId = req.query.id;
-
-    if (!courseId) {
-      return res.status(400).json({ error: "Course ID required" });
-    }
-
-    cartItems = cartItems.filter(
-      (item) => String(item.course_id) !== String(courseId)
-    );
-
-    console.log("🗑️ Removed from cart:", courseId);
-    res.json({ items: cartItems });
-  } catch (error) {
-    console.error("Error removing from cart:", error);
-    res.status(500).json({ error: "Failed to remove from cart" });
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching cart:", err);
+    res.status(500).json({ error: "Failed to fetch cart" });
   }
 });
 

@@ -1,0 +1,6 @@
+CREATE TABLE BankAccount (
+	StudentID CHAR(10) PRIMARY KEY,
+	Balance DECIMAL(10,2) DEFAULT 0,
+	CardNo CHAR(16),
+	FOREIGN KEY (StudentID) REFERENCES Student(StudentID)
+);
