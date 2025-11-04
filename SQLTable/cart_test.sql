@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS cart;
 CREATE TABLE cart (
   cart_id SERIAL PRIMARY KEY,
   student_id INT NOT NULL,

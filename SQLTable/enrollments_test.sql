@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS enrollments;
 CREATE TABLE enrollments (
   enrollmentid SERIAL PRIMARY KEY,
   studentid CHAR(10) REFERENCES student(studentid),
