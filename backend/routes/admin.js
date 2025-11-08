@@ -1,5 +1,5 @@
 import express from "express";
-import pool from "../db.js"; // adjust import if you’re using pg.Pool
+import { pool } from "../db.js";
 
 const router = express.Router();
 
