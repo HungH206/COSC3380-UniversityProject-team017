@@ -8,9 +8,9 @@ const { Pool } = pkg;
 export const pool = new Pool({
   host: "localhost",
   port: 5432,
-  database: "universitydb",  // or your custom DB (coursedb)
+  database: "finaluniversitydb",  // or your custom DB (coursedb)
   user: "postgres",
-  password: "Thuy1999",
+  password: "2006hung",
 });
 
 // --- auto create tables on first run ---
@@ -19,109 +19,159 @@ async function initSchema() {
   try {
     console.log("🗄️  Checking database tables...");
 
-    //Student test table
 
-    await client.query(`
-
-    CREATE TABLE IF NOT EXISTS student (
-    StudentID CHAR(10) PRIMARY KEY,
-    StudentName CHAR(100) --optional
-);
-
-INSERT INTO student (Studentid, Studentname) VALUES ('S001', 'Will Hoang') ON CONFLICT DO NOTHING;
-
+// Initialize sequences
+await client.query(`
+      CREATE SEQUENCE IF NOT EXISTS student_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS course_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS section_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS semester_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS schedule_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS instructor_seq START 1;
+      CREATE SEQUENCE IF NOT EXISTS payment_seq START 1;
     `);
 
-    // Courses table
-    await client.query(`
+    // 1/ Student test table
 
-CREATE TABLE IF NOT EXISTS courses (
-  id SERIAL PRIMARY KEY,
-  code VARCHAR(20),
-  name VARCHAR(100),
-  department VARCHAR(50),
-  credits INT,
-  semester VARCHAR(20),
-  instructor VARCHAR(100),
-  schedule VARCHAR(50),
-  location VARCHAR(100),
-  capacity INT,
-  enrolled INT,
-  prerequisites TEXT,
-  description TEXT,
-  available BOOLEAN DEFAULT TRUE
-);
-
-
--- Sample data will be inserted manually if needed
-INSERT INTO courses 
-(code, name, department, credits, semester, instructor, schedule, location, capacity, enrolled, prerequisites, description, available)
-VALUES
-('COSC1336', 'Intro to Python Programming', 'Computer Science', 3, 'Spring 2026', 'Prof. Dan Biediger', 'MW 16:00-17:30', 'SR2 130', 100, 25, NULL, 'Fundamentals of programming and logic', TRUE),
-
-('COSC1437', 'Intro to C++ Programming', 'Computer Science', 4, 'Spring 2026', 'Prof. Dan Biediger', 'MWF 09:00-10:00', 'SR2 130', 100, 25, 'COSC1336', 'Fundamental concepts of structured programming; procedures and elementary data structures with a focus on problem solving strategies and implementation; computer organization, structured procedural programming, C/C++ programming language, and algorithm design.', TRUE),
-
-('COSC2436', 'Programming and Data Structures', 'Computer Science', 4, 'Fall 2025', 'Prof. Dan Biediger', 'TTh 10:30-12:00', 'SR2 130', 25, 25, 'COSC1437', 'Introduction to fundamental data structures: arrays, lists, stacks, queues, hash tables, trees; sorting and searching; graph algorithms; design, analysis, and comparison of algorithms. Correctness verification techniques such as assertions and invariants. Review program specification, unit testing, and debugging.', FALSE),
-
-('COSC3380', 'Database Systems', 'Computer Science', 4, 'Fall 2025', 'Prof. Carlos Ordonez', 'MW 8:30-10:00', 'PGH 232', 100, 95, 'COSC2436', 'Database design with ER model, relational model and normalization up to 3NF/BCNF normal forms. Relational algebra and basic SQL queries combining filters, joins and aggregations. SQL transaction processing. Overview of DBMS internal subsystems including: storage, indexing, query optimizer, locking, recovery manager, security mechanisms. Database application development.', FALSE),
-
-('MATH2413', 'Calculus I', 'Mathematics', 4, 'Fall 2025', 'Prof. Emily Rodriguez', 'MWF 11:00-12:00', 'Math Building 150', 40, 35, 'MATH Entrance Exam', 'Calculus of rational functions, limits, derivatives, applications of the derivative, antiderivatives, the definite integral with applications, mean value theorem, fundamental theorem of calculus, and numerical integration.', TRUE),
-
-('MATH2414', 'Calculus II', 'Mathematics', 4, 'Spring 2026', 'Prof. Emily Rodriguez', 'MWF 11:00-12:00', 'Math Building 150', 40, 35, 'MATH2413', 'Calculus of transcendental functions: additional techniques and applications of integration, indeterminate forms, improper integrals, Taylor''s formula, and infinite series.', TRUE),
-
-('PHYS2325', 'University Physics I', 'Physics', 4, 'Spring 2026', 'Prof. Israel P. Vazquez', 'TTh 13:00-14:30', 'SR116', 30, 22, 'MATH2413', 'Mechanics, waves, and thermodynamics', TRUE),
-
-('PHYS2326', 'University Physics II', 'Physics', 4, 'Spring 2026', 'Dr. James Wilson', 'TTh 10:00-11:30', 'SR117', 30, 22, 'MATH2414', 'Electricity, magnetism, and optics', TRUE),
-
-('ENG1301', 'First Year Writing I', 'English', 3, 'Spring 2026', 'Prof. Amanda Lee', 'MWF 09:00-10:00', 'C 125', 25, 20, 'A TSI placement score of at least 340', 'Advanced writing and analysis', TRUE),
-
-('COSC3360', 'Operating Systems', 'Computer Science', 3, 'Spring 2026', 'Prof. Carlos Rincon', 'TTh 14:30-16:00', 'SEC 102', 25, 18, 'COSC2436', 'Operating systems: sequential processes, concurrent processes, deadlock, mutual exclusion, semaphores; memory management, processor management, peripheral device management.', TRUE)
-    `);
-
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS cart (
-  cart_id SERIAL PRIMARY KEY,
-  student_id INT NOT NULL,
-  course_id INT REFERENCES courses(id) ON DELETE CASCADE,
-  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-    `);
-
-
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS bankaccount (
-    id SERIAL PRIMARY KEY,
-    studentid CHAR(10) REFERENCES Student(studentid),
-    balance DECIMAL(10,2) DEFAULT 0,
-    amountdue DECIMAL(10,2) DEFAULT 0
-);
-
-INSERT INTO bankaccount (studentid, balance, amountdue)
-VALUES
-('S001', 10000.00, 0.00) ON CONFLICT DO NOTHING;
-    `);
-
-    await client.query(`
-CREATE TABLE IF NOT EXISTS Transactions (
-  transactionid SERIAL PRIMARY KEY,
-  studentid CHAR(10) REFERENCES Student(studentid),
-  amount DECIMAL(10,2),
-  paymentmethod VARCHAR(50),
-  status VARCHAR(20),
-  transactiondate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-    `);
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS Enrollments (
-        enrollmentid SERIAL PRIMARY KEY,
-        studentid CHAR(10) REFERENCES Student(studentid),
-        courseid INT REFERENCES Courses(id),
-        semester VARCHAR(20) DEFAULT 'Fall 2025',
-        status VARCHAR(20) DEFAULT 'enrolled',
-        enrolledat TIMESTAMP DEFAULT NOW()
+     await client.query(`
+      CREATE TABLE IF NOT EXISTS Student (
+        StudentID CHAR(10) PRIMARY KEY DEFAULT 'S' || LPAD(NEXTVAL('student_seq')::text, 3, '0'),
+        StudentName VARCHAR(100),
+        Password VARCHAR(20)
       );
     `);
+
+    await client.query(`
+      INSERT INTO Student (StudentName, Password)
+      VALUES
+      ('Alice Blue', 'AB123456'),
+      ('Brian Lee', 'BL654321'),
+      ('Jessi Kim', 'JK111222'),
+      ('David Brown', 'DB333444'),
+      ('Emma Johnson', 'EJ555666')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    // 2. BankAccount table
+    await client.query(`
+    CREATE TABLE IF NOT EXISTS BankAccount (
+	StudentID CHAR(10) PRIMARY KEY REFERENCES Student(StudentID),
+  Balance DECIMAL(10,2) DEFAULT 0,
+  CardNo CHAR(16)
+);
+    `);
+
+// 3. Semester
+await client.query(`
+CREATE TABLE IF NOT EXISTS Semester (
+	SemesterID CHAR(10) PRIMARY KEY DEFAULT 'SEM' || LPAD(NEXTVAL('semester_seq')::text, 2, '0'),
+	Term CHAR(20),
+	Year INT
+);
+  `);
+
+    // 4. Schedule
+await client.query(`
+CREATE TABLE IF NOT EXISTS Schedule (
+	ScheduleID CHAR(10) PRIMARY KEY DEFAULT 'SCH' || LPAD(NEXTVAL('schedule_seq')::text, 2, '0'),
+	DayOfWeek CHAR(10) NOT NULL,
+	StartTime TIME NOT NULL,
+	EndTime TIME NOT NULL,
+	CONSTRAINT chk_time CHECK (EndTime > StartTime)
+);
+`);
+
+
+//5. Instructor
+    await client.query(`
+CREATE TABLE IF NOT EXISTS instructor (
+  instructorid SERIAL PRIMARY KEY,
+  instructorname VARCHAR(100)
+);
+    `);
+
+    //6. Courses table
+    await client.query(`
+CREATE TABLE IF NOT EXISTS course (
+  CourseID CHAR(10) PRIMARY KEY DEFAULT 'C' || LPAD(NEXTVAL('course_seq')::text, 3, '0'),
+	CourseName CHAR(100) NOT NULL,
+	Credits INT,
+	Dept CHAR(20),
+	Course CHAR(20),
+	Cost DECIMAL(10,2),
+	Description CHAR(500)
+);
+ `);
+
+ //7. Course Prerequisite
+ await client.query(`
+CREATE TABLE IF NOT EXISTS Prerequisite (
+	CourseID CHAR(10),
+	PrereCourseID CHAR(10),
+	PRIMARY KEY (CourseID, PrereCourseID),
+	FOREIGN KEY (CourseID) REFERENCES Course(CourseID),
+	FOREIGN KEY (PrereCourseID) REFERENCES Course(CourseID)
+);
+`);
+
+// 8. Section 
+ await client.query(`
+CREATE TABLE IF NOT EXISTS Section (
+	SectionID CHAR(10) PRIMARY KEY,
+	CourseID CHAR(10),
+	SemesterID CHAR(10),
+	Mode CHAR(20),
+	RoomID CHAR(10),
+	InstructorID CHAR(10),
+	EnrolledCount INT DEFAULT 0,
+	Status CHAR(20),
+	Capacity INT
+);
+`);
+
+// 9. Sectionschedule
+ await client.query(`
+CREATE TABLE IF NOT EXISTS SectionSchedule (
+	SectionID CHAR(10) REFERENCES Section(SectionID),
+	ScheduleID CHAR(10)  REFERENCES Schedule(ScheduleID),
+	PRIMARY KEY (SectionID, ScheduleID)
+);
+  `);
+
+  // 10. Enrollments table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS Enrollments (
+        EnrollmentID SERIAL PRIMARY KEY,
+        StudentID CHAR(10) REFERENCES Student(StudentID),
+        SectionID CHAR(10) REFERENCES Section(SectionID),
+        Enrollment_status VARCHAR(20) DEFAULT 'enrolled',
+        Enroll_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        Grade CHAR(2)
+      );
+    `);
+
+
+ // 11. Transactions table
+await client.query(`
+      CREATE TABLE IF NOT EXISTS Payment (
+        PaymentID CHAR(10) PRIMARY KEY DEFAULT 'P' || LPAD(NEXTVAL('payment_seq')::text, 3, '0'),
+        StudentID CHAR(10) REFERENCES Student(StudentID),
+        Amount_due DECIMAL(10,2),
+        Pay_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+
+    // 12. Cart table
+    await client.query(`
+    CREATE TABLE IF NOT EXISTS Cart (
+        CartID SERIAL PRIMARY KEY,
+        StudentID CHAR(10) REFERENCES Student(StudentID),
+        CourseID CHAR(10) REFERENCES Course(CourseID),
+        Added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+    `);
+
 
     console.log("✅ All tables verified / created successfully.");
   } catch (err) {

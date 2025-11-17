@@ -7,21 +7,34 @@ import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 
+interface ScheduleItem {
+  day: string
+  start: string
+  end: string
+}
+
+interface Prerequisite {
+  courseId: string
+}
+
 interface Course {
   id: string
-  code: string
   name: string
   department: string
   credits: number
+  description: string
+  cost: number
+
+  sectionid: string
   semester: string
   instructor: string
-  schedule: string
   location: string
   capacity: number
   enrolled: number
-  prerequisites: Array<{ code: string; name: string }>
-  description: string
   available: boolean
+
+  schedule: ScheduleItem[]
+  prerequisites: Prerequisite[]
 }
 
 export default function CatalogPage() {
@@ -29,12 +42,12 @@ export default function CatalogPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
   const [selectedSemester, setSelectedSemester] = useState<string>("all")
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
-  const [showEligibleOnly, setShowEligibleOnly] = useState(false)
 
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Load courses from backend
   useEffect(() => {
     async function fetchCourses() {
       try {
@@ -46,15 +59,12 @@ export default function CatalogPage() {
         if (selectedSemester !== "all") params.append("semester", selectedSemester)
 
         const response = await fetch(`/api/courses?${params.toString()}`)
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch courses")
-        }
+        if (!response.ok) throw new Error("Failed to fetch courses")
 
         const data = await response.json()
         setCourses(data)
       } catch (err) {
-        console.error("[v0] Error fetching courses:", err)
+        console.error("[Catalog] Error fetching courses:", err)
         setError(err instanceof Error ? err.message : "Failed to load courses")
       } finally {
         setLoading(false)
@@ -64,32 +74,40 @@ export default function CatalogPage() {
     fetchCourses()
   }, [selectedDepartment, selectedSemester])
 
+  // Search filtering
   const filteredCourses = courses.filter((course) => {
-    const matchesSearch =
-      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase())
+    const search = searchQuery.toLowerCase()
+    const matches =
+      course.name.toLowerCase().includes(search) ||
+      course.id.toLowerCase().includes(search) ||
+      course.instructor.toLowerCase().includes(search)
 
-    return matchesSearch
+    if (showAvailableOnly && !course.available) return false
+
+    return matches
   })
 
-  const handleAddToCart = async (courseId: number) => {
-  try {
-    const response = await fetch("http://localhost:3001/api/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ student_id: 1, course_id: courseId }),
-    });
-    
+  // Add section to cart
+  const handleAddToCart = async (sectionId: string) => {
+    try {
+      const response = await fetch("http://localhost:3001/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_id: "S001",
+          section_id: sectionId,
+        }),
+      })
+
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add course to cart")
+        throw new Error(errorData.error || "Failed to add to cart")
       }
 
-      alert("✅ Course added to cart!")
+      alert("Course section added to cart!")
     } catch (err) {
-      console.error("Add to cart error:", err)
-      alert("❌ Could not add course to cart")
+      console.error("Add-to-cart error:", err)
+      alert("Failed to add section.")
     }
   }
 
@@ -98,11 +116,15 @@ export default function CatalogPage() {
       <Navigation />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Course Catalog</h1>
-          <p className="mt-2 text-muted-foreground text-pretty">Browse available courses and add them to your cart</p>
+          <h1 className="text-3xl font-bold tracking-tight">Course Catalog</h1>
+          <p className="mt-2 text-muted-foreground">
+            Browse available courses and register for a section
+          </p>
         </div>
 
+        {/* Search */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -117,6 +139,8 @@ export default function CatalogPage() {
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
+
+          {/* Sidebar Filters */}
           <aside className="lg:w-64">
             <CourseFilters
               selectedDepartment={selectedDepartment}
@@ -125,11 +149,12 @@ export default function CatalogPage() {
               onSemesterChange={setSelectedSemester}
               showAvailableOnly={showAvailableOnly}
               onAvailableOnlyChange={setShowAvailableOnly}
-              showEligibleOnly={showEligibleOnly}
-              onEligibleOnlyChange={setShowEligibleOnly}
+              showEligibleOnly={false}
+              onEligibleOnlyChange={() => {}}
             />
           </aside>
 
+          {/* Course List */}
           <div className="flex-1">
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -139,52 +164,47 @@ export default function CatalogPage() {
             ) : error ? (
               <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
                 <p className="text-destructive">{error}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Make sure your NEON_DATABASE_URL environment variable is set correctly
-                </p>
               </div>
             ) : (
               <>
                 <div className="mb-4 text-sm text-muted-foreground">
-                  Showing {filteredCourses.length} of {courses.length} courses
+                  Showing {filteredCourses.length} of {courses.length} sections
                 </div>
 
                 <div className="grid gap-4">
-                  {filteredCourses.map((course) => {
-                    const prerequisiteCodes = Array.isArray(course.prerequisites) 
-                      ? course.prerequisites.map((p) => p.code)
-                      : []
-                    const isAvailable = course.available
+                  {filteredCourses.map((course) => (
+                    <CourseCard
+                      key={course.sectionid}
+                      course={{
+                        course_id: course.id,
+                        name: course.name,
+                        credits: course.credits,
+                        department: course.department,
+                        cost: course.cost,
+                        description: course.description,
+                        sectionId: course.sectionid,
 
-                    return (
-                      <CourseCard
-                        key={course.id}
-                        course={{
-                          course_id: parseInt(course.id),
-                          course_code: course.code,
-                          course_name: course.name,
-                          department: course.department,
-                          credits: course.credits,
-                          semester: course.semester,
-                          instructor: course.instructor,
-                          schedule: course.schedule,
-                          location: course.location,
-                          capacity: course.capacity,
-                          enrolled: course.enrolled,
-                          prerequisites: prerequisiteCodes,
-                          description: course.description,
-                        }}
-                        isEligible={true}
-                        isAvailable={isAvailable}
-                        completedCourses={[]}
-                        onAddToCart={() => handleAddToCart(parseInt(course.id))}
-                      />
-                    )
-                  })}
+                        semester: course.semester,
+                        instructor: course.instructor,
+                        schedule: course.schedule,
+                        location: course.location,
+
+                        capacity: course.capacity,
+                        enrolled: course.enrolled,
+                        available: course.available,
+
+                        prerequisites: course.prerequisites?.map((p) => p.courseId) || [],
+                      }}
+                      isEligible={true}
+                      isAvailable={course.available}
+                      completedCourses={[]}
+                      onAddToCart={() => handleAddToCart(course.sectionid)}
+                    />
+                  ))}
 
                   {filteredCourses.length === 0 && (
                     <div className="rounded-lg border border-dashed border-border p-12 text-center">
-                      <p className="text-muted-foreground">No courses found matching your criteria</p>
+                      <p className="text-muted-foreground">No matching courses</p>
                     </div>
                   )}
                 </div>

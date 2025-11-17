@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>University DB Admin</title>
+  <style>
+    body { font-family: Arial; display: flex; gap: 20px; padding: 20px; }
+    div { border: 1px solid #ccc; padding: 15px; width: 300px; border-radius: 8px; }
+    pre { background: #f0f0f0; padding: 10px; max-height: 300px; overflow-y: scroll; }
+  </style>
+</head>
+<body>
+
+  <div>
+    <h3>1. Initialize Database</h3>
+    <button id="btn-setup">Run DB Setup</button>
+  </div>
+
+  <div>
+    <h3>2. Run SQL Command</h3>
+    <textarea id="sql-input" rows="10" style="width:100%"></textarea>
+    <button id="btn-run-sql">Execute</button>
+
+    <h4>SQL Log</h4>
+    <pre id="sql-log"></pre>
+  </div>
+
+  <div>
+    <h3>Results</h3>
+    <pre id="results"></pre>
+  </div>
+
+<script src="admin-sql-app.js"></script>
+</body>
+</html>
