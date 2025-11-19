@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { Navigation } from "@/components/navigation"
@@ -58,11 +59,50 @@ export default function CatalogPage() {
         if (selectedDepartment !== "all") params.append("department", selectedDepartment)
         if (selectedSemester !== "all") params.append("semester", selectedSemester)
 
-        const response = await fetch(`/api/courses?${params.toString()}`)
+        // Backend API route
+        const response = await fetch(`http://localhost:3001/api/course?${params.toString()}`)
         if (!response.ok) throw new Error("Failed to fetch courses")
 
-        const data = await response.json()
-        setCourses(data)
+        const rawData = await response.json()
+
+        // Transform backend rows → frontend structure
+        const formatted = rawData.map((row: any) => {
+  const scheduleItems: ScheduleItem[] = []
+
+  if (row.days) {
+    const days = row.days.split("/")
+    for (const d of days) {
+      scheduleItems.push({
+        day: d,
+        start: row.starttime,
+        end: row.endtime,
+      })
+    }
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    department: row.department,
+    credits: row.credits,
+    description: row.description,
+    cost: row.cost,
+
+    sectionid: row.sectionid,
+    semester: row.semester,
+    instructor: row.instructor,
+    location: row.location ?? "TBD",
+    capacity: row.capacity,
+    enrolled: row.enrolled,
+    available: row.enrolled < row.capacity,
+
+    schedule: scheduleItems,
+    prerequisites: row.prerequisites || [],
+  }
+})
+
+
+        setCourses(formatted)
       } catch (err) {
         console.error("[Catalog] Error fetching courses:", err)
         setError(err instanceof Error ? err.message : "Failed to load courses")
@@ -80,36 +120,34 @@ export default function CatalogPage() {
     const matches =
       course.name.toLowerCase().includes(search) ||
       course.id.toLowerCase().includes(search) ||
-      course.instructor.toLowerCase().includes(search)
+      (course.instructor || "").toLowerCase().includes(search)
 
     if (showAvailableOnly && !course.available) return false
-
     return matches
   })
 
   // Add section to cart
-  const handleAddToCart = async (sectionId: string) => {
-    try {
-      const response = await fetch("http://localhost:3001/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student_id: "S001",
-          section_id: sectionId,
-        }),
-      })
+  // Add section to enrollment (Pending)
+const handleAddToCart = async (sectionId: string) => {
+  try {
+    const response = await fetch("http://localhost:3001/api/enroll/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        studentId: "S001",
+        sectionId,
+      }),
+    })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add to cart")
-      }
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error)
 
-      alert("Course section added to cart!")
-    } catch (err) {
-      console.error("Add-to-cart error:", err)
-      alert("Failed to add section.")
-    }
+    alert("Course added (Pending)")
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Failed to add")
   }
+}
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,9 +157,7 @@ export default function CatalogPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Course Catalog</h1>
-          <p className="mt-2 text-muted-foreground">
-            Browse available courses and register for a section
-          </p>
+          <p className="mt-2 text-muted-foreground">Browse available courses and register for a section</p>
         </div>
 
         {/* Search */}
@@ -172,28 +208,25 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="grid gap-4">
-                  {filteredCourses.map((course) => (
+                  {filteredCourses.map((course, index) => (
                     <CourseCard
-                      key={course.sectionid}
+                      key={course.sectionid || index}
                       course={{
                         course_id: course.id,
                         name: course.name,
-                        credits: course.credits,
                         department: course.department,
-                        cost: course.cost,
+                        credits: course.credits,
                         description: course.description,
                         sectionId: course.sectionid,
-
                         semester: course.semester,
                         instructor: course.instructor,
                         schedule: course.schedule,
                         location: course.location,
-
                         capacity: course.capacity,
                         enrolled: course.enrolled,
+                        cost: course.cost,
                         available: course.available,
-
-                        prerequisites: course.prerequisites?.map((p) => p.courseId) || [],
+                        prerequisites: course.prerequisites.map((p) => p.courseId),
                       }}
                       isEligible={true}
                       isAvailable={course.available}

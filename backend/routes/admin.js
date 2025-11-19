@@ -4,7 +4,7 @@ import { pool } from "../db.js";
 const router = express.Router();
 
 // Get all transactions joined with student data
-router.get("/transactions", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 

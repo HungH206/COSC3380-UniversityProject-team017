@@ -44,7 +44,7 @@ export default function PaymentPage() {
 
   const fetchCartItems = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/cart")
+      const response = await fetch("http://localhost:3001/api/enroll/pay")
       if (!response.ok) throw new Error("Failed to fetch cart")
 
       const data = await response.json()
@@ -69,7 +69,7 @@ export default function PaymentPage() {
       const fees = 450
       const total = tuitionTotal + fees
 
-      const transactionResponse = await fetch("http://localhost:3001/api/transactions", {
+      const transactionResponse = await fetch("http://localhost:3001/api/enroll/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -174,11 +174,11 @@ Thank you for your payment!
   }
 
   const tuitionTotal = cartItems.reduce((sum, item) => sum + (item.price || 0), 0)
-  const fees = 450
-  const total = tuitionTotal + fees
-  const paid = 0
-  const due = total
-  const percentagePaid = total > 0 ? (paid / total) * 100 : 0
+const total = tuitionTotal
+const paid = 0
+const due = total
+const percentagePaid = total > 0 ? (paid / total) * 100 : 0
+
 
   if (isLoading) {
     return (
@@ -280,14 +280,6 @@ Thank you for your payment!
                           <span className="font-medium">${item.price?.toLocaleString()}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between border-t border-border pt-2 text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium">${tuitionTotal.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Fees</span>
-                        <span className="font-medium">${fees.toLocaleString()}</span>
-                      </div>
                       <div className="flex justify-between border-t border-border pt-2 font-bold">
                         <span>Total</span>
                         <span>${total.toLocaleString()}</span>

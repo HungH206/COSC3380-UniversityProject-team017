@@ -5,365 +5,230 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Award, BookOpen, TrendingUp } from "lucide-react"
+import { BookOpen, TrendingUp, DollarSign } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { getDefaultStudent, Student } from "@/lib/default-student"
 
 interface Course {
-  id?: string
   code: string
   name: string
   credits: number
-  grade?: string
-  gradePoints?: number
   instructor?: string
   schedule?: string
   price?: number
 }
 
-interface EnrolledCourses {
+interface CoursesBySemester {
   [semester: string]: Course[]
 }
 
 export default function ProfilePage() {
-  const [studentInfo, setStudentInfo] = useState<Student>(getDefaultStudent())
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourses>({})
+  const [studentInfo, setStudentInfo] = useState({
+    studentId: "",
+    name: "",
+    gpa: 0,
+    totalCredits: 0
+  })
+
+  const [bankInfo, setBankInfo] = useState({
+    balance: 0,
+    amount_due: 0
+  })
+
+  const [currentCourses, setCurrentCourses] = useState<Course[]>([])
+  const [nextCourses, setNextCourses] = useState<Course[]>([])
+  const [completedCourses, setCompletedCourses] = useState<CoursesBySemester>({})
+
+  const [currentSemester, setCurrentSemester] = useState("Fall 2025")
+  const [nextSemester, setNextSemester] = useState("Spring 2026")
+
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    const student = getDefaultStudent()
-    setStudentInfo(student)
-    fetchEnrolledCourses()
+    loadProfile("S001")
   }, [])
 
-  const fetchEnrolledCourses = async () => {
+  async function loadProfile(studentId: string) {
     try {
-      const response = await fetch("http://localhost:3001/api/enrollments")
-      if (!response.ok) throw new Error("Failed to fetch enrollments")
+      const res = await fetch(`http://localhost:3001/api/profile/${studentId}`)
+      if (!res.ok) throw new Error("Failed to load profile")
 
-      const data = await response.json()
-      setEnrolledCourses(data.enrollments)
-      console.log("[v0] Enrolled courses loaded:", Object.keys(data.enrollments).length, "semesters")
-    } catch (error) {
-      console.error("[v0] Error fetching enrollments:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load enrolled courses",
-        variant: "destructive",
+      const data = await res.json()
+
+      setStudentInfo({
+        studentId: data.student.studentid,
+        name: data.student.name,
+        gpa: Number(data.student.gpa) || 0,
+        totalCredits: data.student.total_credits
       })
+
+      setBankInfo({
+        balance: data.bank.balance,
+        amount_due: data.bank.amount_due
+      })
+
+      setCurrentSemester(data.currentSemester)
+      setNextSemester(data.nextSemester)
+
+      setCurrentCourses(data.currentCourses)
+      setNextCourses(data.upcomingCourses)
+      setCompletedCourses(data.completedCourses)
+
+    } catch (err) {
+      console.error("[Profile] Load error:", err)
+      toast({ title: "Error", description: "Failed to load profile", variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
   }
 
-  const creditsCompleted = studentInfo.degreeProgress || 0
-  const creditsRequired = 120
-  const completionPercentage = (creditsCompleted / creditsRequired) * 100
-
-  const currentSemester = "Fall 2025"
-  const nextSemester = "Spring 2026"
-  const currentCourses = enrolledCourses[currentSemester] || []
-  const nextCourses = enrolledCourses[nextSemester] || []
-
-  const courseHistory = [
-    {
-      semester: "Fall 2024",
-      courses: [
-        { code: "CS101", name: "Intro to Computer Science", credits: 3, grade: "A", gradePoints: 4.0 },
-        { code: "MATH101", name: "Calculus I", credits: 4, grade: "A-", gradePoints: 3.7 },
-        { code: "ENG101", name: "English Composition", credits: 3, grade: "B+", gradePoints: 3.3 },
-      ],
-    },
-  ]
+  const completionPercentage = (studentInfo.totalCredits / 120) * 100
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Student Profile</h1>
-          <p className="mt-2 text-muted-foreground text-pretty">View your academic progress and course history</p>
-        </div>
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        <h1 className="text-3xl font-bold">Student Profile</h1>
+        <p className="text-muted-foreground mt-1">Your academic and financial overview</p>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Student Info */}
-          <div className="lg:col-span-1">
+        <div className="grid gap-6 mt-6 lg:grid-cols-3">
+
+          {/* LEFT COLUMN */}
+          <div className="space-y-6">
+
+            {/* Student Info */}
             <Card>
               <CardHeader>
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <span className="text-2xl font-bold">{studentInfo.name.charAt(0)}</span>
                 </div>
                 <CardTitle className="mt-4">{studentInfo.name}</CardTitle>
-                <CardDescription>{studentInfo.studentId}</CardDescription>
+                <CardDescription>ID: {studentInfo.studentId}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="font-medium">{studentInfo.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Major:</span>
-                    <span className="font-medium">{studentInfo.major || "Not set"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Minor:</span>
-                    <span className="font-medium">{studentInfo.minor || "None"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <span className="font-medium">{studentInfo.currentStatus}</span>
+              <CardContent>
+                {/* GPA */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">GPA</span>
+                    <span className="font-bold text-lg">{studentInfo.gpa.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div className="border-t border-border pt-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium">Degree Progress</span>
-                    <span className="text-sm text-muted-foreground">
-                      {creditsCompleted}/{creditsRequired} credits
-                    </span>
+                {/* Credits */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Credits Completed</span>
+                    <span>{studentInfo.totalCredits}/120</span>
                   </div>
-                  <Progress value={completionPercentage} className="h-2" />
-                  <p className="mt-2 text-xs text-muted-foreground">{completionPercentage.toFixed(0)}% complete</p>
+                  <Progress value={completionPercentage} />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {completionPercentage.toFixed(0)}% degree progress
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {studentInfo.achievements && studentInfo.achievements.length > 0 && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-base">Achievements</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {studentInfo.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                        <Award className="h-5 w-5" />
-                      </div>
-                      <div className="text-sm font-medium">{achievement}</div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+            {/* Bank Account Box */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Bank Account</CardTitle>
+                <CardDescription>Your university financials</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Balance</span>
+                  <span className="font-medium">${bankInfo.balance.toLocaleString()}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount Due</span>
+                  <span className="font-medium text-destructive">
+                    ${bankInfo.amount_due.toLocaleString()}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right Column - Courses */}
+          {/* RIGHT COLUMN */}
           <div className="lg:col-span-2">
-            <div className="mb-6 grid gap-4 sm:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <CardDescription>Cumulative GPA</CardDescription>
-                  </div>
-                  <CardTitle className="text-4xl">{(studentInfo.gpa || 0).toFixed(2)}</CardTitle>
-                </CardHeader>
-              </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-accent" />
-                    <CardDescription>Credits Earned</CardDescription>
-                  </div>
-                  <CardTitle className="text-4xl">{creditsCompleted}</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-
-            <Tabs defaultValue="current" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="current">Current Semester</TabsTrigger>
-                <TabsTrigger value="next">Next Semester</TabsTrigger>
-                <TabsTrigger value="history">Course History</TabsTrigger>
+            <Tabs defaultValue="current">
+              <TabsList className="grid grid-cols-3 w-full">
+                <TabsTrigger value="current">Current</TabsTrigger>
+                <TabsTrigger value="next">Next</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="current" className="mt-6">
+              {/* CURRENT SEMESTER */}
+              <TabsContent value="current" className="mt-4">
                 {isLoading ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <div className="text-muted-foreground">Loading courses...</div>
-                    </CardContent>
-                  </Card>
+                  <Card><CardContent className="p-6 text-center">Loading...</CardContent></Card>
                 ) : currentCourses.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">No Current Courses</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        You are not enrolled in any courses this semester.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <Card><CardContent className="p-6 text-center">No current courses.</CardContent></Card>
                 ) : (
                   <Card>
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>{currentSemester}</CardTitle>
-                          <CardDescription>
-                            {currentCourses.reduce((sum: number, course: Course) => sum + course.credits, 0)} credits
-                          </CardDescription>
-                        </div>
-                        <Badge variant="default">In Progress</Badge>
-                      </div>
+                      <CardTitle>{currentSemester}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        {currentCourses.map((course: Course) => (
-                          <div
-                            key={course.id}
-                            className="flex items-center justify-between rounded-lg border border-border p-4"
-                          >
-                            <div>
-                              <div className="font-medium">
-                                {course.code}: {course.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {course.instructor} • {course.schedule}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <Badge variant="secondary">{course.credits} credits</Badge>
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                ${course.price?.toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {currentCourses.map((c, i) => (
+                        <div key={i} className="border rounded-lg p-4 mb-3">
+                          <div className="font-medium">{c.code} — {c.name}</div>
+                          <div className="text-sm text-muted-foreground">{c.credits} credits</div>
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                 )}
               </TabsContent>
 
-              <TabsContent value="next" className="mt-6">
-                {isLoading ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <div className="text-muted-foreground">Loading courses...</div>
-                    </CardContent>
-                  </Card>
-                ) : nextCourses.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">No Courses for Next Semester</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Visit the course catalog to register for next semester.
-                      </p>
-                    </CardContent>
-                  </Card>
+              {/* NEXT SEMESTER */}
+              <TabsContent value="next" className="mt-4">
+                {nextCourses.length === 0 ? (
+                  <Card><CardContent className="p-6 text-center">No courses next semester.</CardContent></Card>
                 ) : (
                   <Card>
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle>{nextSemester}</CardTitle>
-                          <CardDescription>
-                            {nextCourses.reduce((sum: number, course: Course) => sum + course.credits, 0)} credits
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline">Upcoming</Badge>
-                      </div>
+                      <CardTitle>{nextSemester}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        {nextCourses.map((course: Course) => (
-                          <div
-                            key={course.id}
-                            className="flex items-center justify-between rounded-lg border border-border p-4"
-                          >
-                            <div>
-                              <div className="font-medium">
-                                {course.code}: {course.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {course.instructor} • {course.schedule}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <Badge variant="secondary">{course.credits} credits</Badge>
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                ${course.price?.toLocaleString()}
-                              </div>
-                            </div>
+                      {nextCourses.map((c, i) => (
+                        <div key={i} className="border rounded-lg p-4 mb-3">
+                          <div className="font-medium">{c.code} — {c.name}</div>
+                          <div className="text-sm text-muted-foreground">{c.credits} credits</div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* COURSE HISTORY */}
+              <TabsContent value="history" className="mt-4">
+                {Object.keys(completedCourses).length === 0 ? (
+                  <Card><CardContent className="p-6 text-center">No completed courses.</CardContent></Card>
+                ) : (
+                  Object.keys(completedCourses).map((semester) => (
+                    <Card key={semester} className="mb-4">
+                      <CardHeader>
+                        <CardTitle>{semester}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {completedCourses[semester].map((c, i) => (
+                          <div key={i} className="border rounded-lg p-4 mb-2">
+                            <div className="font-medium">{c.code} — {c.name}</div>
+                            <div className="text-sm text-muted-foreground">{c.credits} credits</div>
                           </div>
                         ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  ))
                 )}
               </TabsContent>
 
-              <TabsContent value="history" className="mt-6 space-y-4">
-                {courseHistory.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <h3 className="mt-4 text-lg font-semibold">No Course History</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">Your completed courses will appear here.</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  courseHistory.map((semester) => {
-                    const semesterGPA =
-                      semester.courses.reduce((sum, course) => sum + course.gradePoints * course.credits, 0) /
-                      semester.courses.reduce((sum, course) => sum + course.credits, 0)
-
-                    return (
-                      <Card key={semester.semester}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle>{semester.semester}</CardTitle>
-                              <CardDescription>
-                                {semester.courses.reduce((sum, course) => sum + course.credits, 0)} credits
-                              </CardDescription>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm text-muted-foreground">Semester GPA</div>
-                              <div className="text-2xl font-bold">{semesterGPA.toFixed(2)}</div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            {semester.courses.map((course) => (
-                              <div
-                                key={course.code}
-                                className="flex items-center justify-between rounded-lg border border-border p-3"
-                              >
-                                <div>
-                                  <div className="font-medium">
-                                    {course.code}: {course.name}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">{course.credits} credits</div>
-                                </div>
-                                <Badge
-                                  variant={
-                                    course.gradePoints >= 3.7
-                                      ? "default"
-                                      : course.gradePoints >= 3.0
-                                        ? "secondary"
-                                        : "outline"
-                                  }
-                                >
-                                  {course.grade}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })
-                )}
-              </TabsContent>
             </Tabs>
           </div>
         </div>

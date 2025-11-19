@@ -73,7 +73,7 @@ export default function AdminPage() {
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch("/api/courses")
+      const response = await fetch("/api/course")
       const data = await response.json()
       setCourses(data)
     } catch (error) {
@@ -85,7 +85,7 @@ export default function AdminPage() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/transactions")
+      const response = await fetch("http://localhost:3001/api/enroll/pay")
       const data = await response.json()
       setTransactions(data.transactions || [])
     } catch (error) {
@@ -130,9 +130,9 @@ export default function AdminPage() {
 
   const filteredCourses = courses.filter(
     (course) =>
-      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()),
+      course.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   // Calculate stats
