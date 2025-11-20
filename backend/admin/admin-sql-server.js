@@ -4,22 +4,26 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import pkg from "pg";
-
-const { Pool } = pkg;
+import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load .env from backend directory (parent of admin directory)
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
+const { Pool } = pkg;
 
 const app = express();
 const port = 5050;
 
 // --- PostgreSQL connection (same DB as your main app) ---
 const pool = new Pool({
-  host: "localhost",
-  port: 5432,
-  database: "finaluniversitydb",
-  user: "postgres",
-  password: "2006hung",
+  host: process.env.DB_HOST || "localhost",
+  port: parseInt(process.env.DB_PORT || "5432"),
+  database: process.env.DB_NAME || "finaluniversitydb",
+  user: process.env.DB_USER || "postgres",
+  password: process.env.DB_PASSWORD || "Thuy1999",
 });
 
 // --- Helper: append SQL to trace files ---

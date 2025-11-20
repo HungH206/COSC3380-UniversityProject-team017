@@ -146,6 +146,7 @@ WHERE SectionID = $2;
 COMMIT;
 -- params: []
 
+<<<<<<< Updated upstream
 -- 2025-11-20T00:33:29.110Z
 TRUNCATE TABLE Enrollments RESTART IDENTITY CASCADE;
 -- params: []
@@ -295,6 +296,244 @@ COMMIT;
 -- params: []
 
 -- 2025-11-20T02:18:34.969Z
+=======
+-- 2025-11-20T00:31:14.119Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:31:15.808Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:31:16.020Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:35:33.179Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:45:13.852Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:53:39.048Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T00:53:40.813Z
+BEGIN;
+
+-- 1. Lock the section row
+SELECT * FROM Section WHERE SectionID = $2 FOR UPDATE;
+
+-- 2. Check duplicate enrollment
+SELECT 1 FROM Enrollments WHERE StudentID = $1 AND SectionID = $2;
+
+-- 3. Check capacity (EnrolledCount < Capacity)
+--    and status = 'Open'
+
+-- 4. Ensure Payment row exists
+INSERT INTO Payment(StudentID, Amount_due, Amount_paid)
+SELECT $1, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM Payment WHERE StudentID = $1);
+
+-- 5. Insert enrollment row (Pending)
+INSERT INTO Enrollments(StudentID, SectionID, Enrollment_status)
+VALUES ($1, $2, 'Enrolled');
+
+-- 6. Update Section.EnrolledCount
+UPDATE Section
+SET EnrolledCount = EnrolledCount + 1
+WHERE SectionID = $2;
+
+COMMIT;
+-- params: []
+
+-- 2025-11-20T01:24:13.449Z
+TRUNCATE TABLE Enrollments RESTART IDENTITY CASCADE;
+-- params: []
+
+-- 2025-11-20T01:24:13.468Z
+TRUNCATE TABLE Payment RESTART IDENTITY CASCADE;
+-- params: []
+
+-- 2025-11-20T01:24:13.474Z
+UPDATE Section SET EnrolledCount = 0, Status = 'Open';
+-- params: []
+
+-- 2025-11-20T01:24:13.482Z
+UPDATE Student SET GPA = 0.000, Total_Credits = 0;
+-- params: []
+
+-- 2025-11-20T01:25:03.971Z
+TRUNCATE TABLE Enrollments RESTART IDENTITY CASCADE;
+-- params: []
+
+-- 2025-11-20T01:25:03.978Z
+TRUNCATE TABLE Payment RESTART IDENTITY CASCADE;
+-- params: []
+
+-- 2025-11-20T01:25:03.982Z
+UPDATE Section SET EnrolledCount = 0, Status = 'Open';
+-- params: []
+
+-- 2025-11-20T01:25:03.985Z
+UPDATE Student SET GPA = 0.000, Total_Credits = 0;
+-- params: []
+
+-- 2025-11-20T01:25:07.410Z
+>>>>>>> Stashed changes
 BEGIN;
 
 -- 1. Lock the section row

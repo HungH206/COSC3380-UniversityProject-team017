@@ -47,7 +47,7 @@ export default function ProfilePage() {
 
   async function loadProfile(studentId: string) {
     try {
-      const res = await fetch(`http://localhost:3001/api/profile/${studentId}`)
+      const res = await fetch(`/api/profile/${studentId}`)
       if (!res.ok) throw new Error("Failed to load profile")
 
       const data = await res.json()

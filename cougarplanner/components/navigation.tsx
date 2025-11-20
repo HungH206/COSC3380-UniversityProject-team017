@@ -76,11 +76,11 @@ export function Navigation({ isAdmin = false }: { isAdmin?: boolean }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>
                   <Link
-                    href={isAdmin ? "/admin/profile" : "/profile"}
+                    href={isAdmin ? "/admin" : "/profile"}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <User className="h-4 w-4" />
-                    My Profile
+                    {isAdmin ? "Admin Dashboard" : "My Profile"}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer">
