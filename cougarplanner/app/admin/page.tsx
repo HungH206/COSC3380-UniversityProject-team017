@@ -60,6 +60,11 @@ interface Transaction {
   enrollment_status: string
 }
 
+interface EnrolledStudent {
+  studentId: string
+  name: string
+}
+
 export default function AdminPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -69,8 +74,13 @@ export default function AdminPage() {
   const [selectedStudent, setSelectedStudent] = useState("")
   const [selectedGrade, setSelectedGrade] = useState("")
   const [loading, setLoading] = useState(true)
+<<<<<<< Updated upstream
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [studentsInSection, setStudentsInSection] = useState<any[]>([])
+=======
+  const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+>>>>>>> Stashed changes
 
   // ------------------------------------------------------------------
   // Fetch courses + transactions
@@ -184,10 +194,33 @@ export default function AdminPage() {
   }
 
   const openGradeDialog = async (course: Course) => {
+<<<<<<< Updated upstream
   setSelectedCourse(course)
   setGradeDialogOpen(true)
   setSelectedStudent("")
   setSelectedGrade("")
+=======
+    setSelectedCourse(course)
+    setSelectedStudent("")
+    setSelectedGrade("")
+    setEnrolledStudents([])
+    setGradeDialogOpen(true)
+    
+    // Fetch enrolled students for this course
+    setLoadingStudents(true)
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/courses/${course.id}/students`)
+      if (!response.ok) throw new Error("Failed to fetch enrolled students")
+      const data = await response.json()
+      setEnrolledStudents(data)
+    } catch (error) {
+      console.error("[v0] Error fetching enrolled students:", error)
+      // Optionally show an error toast here
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+>>>>>>> Stashed changes
 
   const sectionId = course.sectionid || course.id
   setLoadingStudents(true)
@@ -214,6 +247,7 @@ export default function AdminPage() {
       return
     }
 
+<<<<<<< Updated upstream
     const sectionId = selectedCourse.sectionid || selectedCourse.id
 
     try {
@@ -244,6 +278,14 @@ export default function AdminPage() {
       console.error("[admin] Grade post error:", err)
       alert("Failed to post grade. Check console.")
     }
+=======
+    console.log(`[v0] Grade posted: ${selectedGrade} for student ${selectedStudent} in course ${selectedCourse?.code}`)
+    alert(`Grade ${selectedGrade} posted successfully for student ${selectedStudent}`)
+    setGradeDialogOpen(false)
+    setSelectedStudent("")
+    setSelectedGrade("")
+    setEnrolledStudents([])
+>>>>>>> Stashed changes
   }
 
   const filteredCourses = courses.filter(
@@ -525,9 +567,10 @@ export default function AdminPage() {
               <Label htmlFor="student">Student</Label>
               <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                 <SelectTrigger id="student">
-                  <SelectValue placeholder="Select student" />
+                  <SelectValue placeholder={loadingStudents ? "Loading students..." : enrolledStudents.length === 0 ? "No enrolled students" : "Select student"} />
                 </SelectTrigger>
                 <SelectContent>
+<<<<<<< Updated upstream
   {loadingStudents ? (
     <SelectItem value="loading">Loading...</SelectItem>
   ) : studentsInSection.length === 0 ? (
@@ -541,6 +584,16 @@ export default function AdminPage() {
   )}
 </SelectContent>
 
+=======
+                  {enrolledStudents.length > 0 ? (
+                    enrolledStudents.map((student) => (
+                      <SelectItem key={student.studentId} value={student.studentId}>
+                        {student.name} ({student.studentId})
+                      </SelectItem>
+                    ))
+                  ) : null}
+                </SelectContent>
+>>>>>>> Stashed changes
               </Select>
             </div>
 

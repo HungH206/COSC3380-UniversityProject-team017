@@ -42,7 +42,40 @@ router.get("/transactions", async (req, res) => {
 
 
 /* ======================================================================
+<<<<<<< Updated upstream
    2. GET STUDENTS ENROLLED IN A SECTION (FOR ADMIN GRADE UI)
+=======
+   2. GET ENROLLED STUDENTS FOR A COURSE
+   ====================================================================== */
+router.get("/courses/:courseId/students", async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    const query = `
+      SELECT DISTINCT
+        s.StudentID AS studentId,
+        s.StudentName AS name
+      FROM Enrollments e
+      JOIN Section sec ON sec.SectionID = e.SectionID
+      JOIN Course c ON c.CourseID = sec.CourseID
+      JOIN Student s ON s.StudentID = e.StudentID
+      WHERE c.CourseID = $1
+        AND e.Enrollment_status = 'Enrolled'
+      ORDER BY s.StudentName;
+    `;
+
+    const results = await pool.query(query, [courseId]);
+    res.json(results.rows);
+
+  } catch (err) {
+    console.error("[ADMIN] Error fetching enrolled students:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ======================================================================
+   3. UPDATE SECTION (Open/Close + Add Seats)
+>>>>>>> Stashed changes
    ====================================================================== */
 router.get("/students", async (req, res) => {
   const { sectionId } = req.query;
@@ -75,7 +108,11 @@ router.get("/students", async (req, res) => {
 
 
 /* ======================================================================
+<<<<<<< Updated upstream
    3. CONCURRENCY SAFE SECTION UPDATE
+=======
+   4. POST GRADES FOR ALL STUDENTS IN A SECTION
+>>>>>>> Stashed changes
    ====================================================================== */
 router.post("/sections/update", async (req, res) => {
   const { sectionId, capacity, status } = req.body;

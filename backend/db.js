@@ -10,7 +10,7 @@ export const pool = new Pool({
   port: 5432,
   database: "finaluniversitydb",  // or your custom DB (coursedb)
   user: "postgres",
-  password: "2006hung",
+  password: "Thuy1999",
 });
 
 // --- auto create tables on first run ---
