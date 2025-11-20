@@ -8,38 +8,42 @@ const router = express.Router();
    ====================================================================== */
 router.get("/transactions", async (req, res) => {
   try {
-    const query = `
+    const result = await pool.query(`
       SELECT 
-        s.studentid,
-        s.studentname,
-        c.courseid,
-        c.coursename,
-        c.credits,
-        p.amount_paid,
-        p.pay_date,
-        e.enrollment_status
+        p.StudentID,
+        s.StudentName,
+        p.Amount_paid AS totalamount,
+        p.Pay_date,
+        'Completed' AS status,
+        json_agg(
+          json_build_object(
+            'courseid', c.CourseID,
+            'coursename', c.CourseName,
+            'credits', c.Credits,
+            'price', c.Cost,
+            'sectionid', e.SectionID
+          )
+        ) AS courses
       FROM Payment p
-      JOIN Enrollments e 
-        ON p.studentid = e.studentid
-      JOIN Student s
-        ON s.studentid = p.studentid
-      JOIN Section sec
-        ON sec.sectionid = e.sectionid
-      JOIN Course c
-        ON c.courseid = sec.courseid
-      WHERE p.amount_paid > 0
-      ORDER BY p.pay_date DESC;
-    `;
+      JOIN Student s ON s.StudentID = p.StudentID
+      JOIN Enrollments e ON e.StudentID = p.StudentID AND e.Enrollment_status = 'Enrolled'
+      JOIN Section sec ON sec.SectionID = e.SectionID
+      JOIN Course c ON c.CourseID = sec.CourseID
+      WHERE p.Amount_paid > 0
+      GROUP BY 
+        p.StudentID,
+        s.StudentName,
+        p.Amount_paid,
+        p.Pay_date
+      ORDER BY p.Pay_date DESC;
+    `);
 
-    const results = await pool.query(query);
-    res.json({ transactions: results.rows });
-
-  } catch (err) {
-    console.error("[ADMIN] Transaction Fetch Error:", err);
-    res.status(500).json({ error: err.message });
+    res.json({ transactions: result.rows });
+  } catch (error) {
+    console.error("Transaction Query Error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
-
 
 /* ======================================================================
 <<<<<<< Updated upstream

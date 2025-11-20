@@ -49,17 +49,23 @@ interface Course {
   available: boolean // true if status = 'Open'
 }
 
-interface Transaction {
-  studentid: string
-  studentname: string
-  courseid: string
-  coursename: string
-  credits: number
-  amount_paid: number
-  pay_date: string
-  enrollment_status: string
+interface CourseDetail {
+  courseid: string;
+  coursename: string;
+  credits: number;
+  price: number;
+  sectionid: string;
 }
 
+interface Transaction {
+  [x: string]: any
+  studentid: string;
+  studentname: string;
+  totalamount: number;
+  pay_date: string;
+  status: string;
+  courses: CourseDetail[];
+}
 export default function AdminPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -258,7 +264,7 @@ export default function AdminPage() {
     totalCourses: courses.length,
     openCourses: courses.filter((c) => c.available).length,
     totalTransactions: transactions.length,
-    totalRevenue: transactions.reduce((sum, t) => sum + (Number(t.amount_paid) || 0), 0),
+    totalRevenue: transactions.reduce((sum, tx) => sum + Number(tx.totalamount || 0), 0)
   }
 
   return (
@@ -420,59 +426,73 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* Transaction Log Tab */}
-          <TabsContent value="transactions" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Transaction Log</CardTitle>
-                <CardDescription>View all course registration payments from students</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {transactions.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
-                    No transactions yet. Transactions will appear here when students make payments.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {transactions.map((transaction, idx) => (
-                      <div key={idx} className="rounded-lg border border-border p-4">
-                        <div className="mb-3 flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{transaction.studentname}</span>
-                              <Badge variant="default">{transaction.enrollment_status}</Badge>
-                            </div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                              {transaction.pay_date
-                                ? new Date(transaction.pay_date).toLocaleString()
-                                : "No date"}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold">
-                              ${(Number(transaction.amount_paid) || 0).toLocaleString()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Student ID: {transaction.studentid}
-                            </div>
-                          </div>
-                        </div>
+         <TabsContent value="transactions" className="mt-6">
+  <Card>
+    <CardHeader>
+      <CardTitle>Student Transaction Log</CardTitle>
+      <CardDescription>Grouped by full payments — not per course</CardDescription>
+    </CardHeader>
 
-                        <div className="space-y-2 border-t border-border pt-3">
-                          <div className="text-sm font-medium">Course Enrolled:</div>
-                          <div className="flex items-center justify-between text-sm text-muted-foreground">
-                            <span>
-                              {transaction.courseid} - {transaction.coursename}
-                            </span>
-                            <span className="font-medium">{transaction.credits} credits</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+    <CardContent>
+      {transactions.length === 0 ? (
+        <div className="py-8 text-center text-muted-foreground">
+          No payments have been made yet.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {transactions.map((tx) => (
+            <div
+              key={tx.studentid + tx.pay_date}
+              className="rounded-lg border border-border p-4"
+            >
+              {/* Header Row */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{tx.studentname}</span>
+                    <Badge variant={tx.status === "Enrolled" ? "default" : "secondary"}>
+                      {tx.status}
+                    </Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {new Date(tx.pay_date).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-xl font-bold">
+                    ${tx.totalamount.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Student ID: {tx.studentid}
+                  </div>
+                </div>
+              </div>
+
+              {/* Course List */}
+              <div className="space-y-2 border-t border-border pt-3 mt-3">
+                <div className="text-sm font-medium">Courses Paid For:</div>
+
+                {tx.courses.map((c) => (
+                  <div
+                    key={c.sectionid}
+                    className="flex items-center justify-between text-sm text-muted-foreground"
+                  >
+                    <span>
+                      {c.courseid} — {c.coursename}
+                    </span>
+                    <span className="font-medium">{c.credits} credits</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
           {/* Post Grades Tab */}
           <TabsContent value="grades" className="mt-6">
