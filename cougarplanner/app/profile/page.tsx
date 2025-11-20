@@ -2,10 +2,8 @@
 
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BookOpen, TrendingUp, DollarSign } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -13,9 +11,7 @@ interface Course {
   code: string
   name: string
   credits: number
-  instructor?: string
-  schedule?: string
-  price?: number
+  grade?: string | null
 }
 
 interface CoursesBySemester {
@@ -68,6 +64,7 @@ export default function ProfilePage() {
         amount_due: data.bank.amount_due
       })
 
+      // these contain grade fields
       setCurrentSemester(data.currentSemester)
       setNextSemester(data.nextSemester)
 
@@ -111,7 +108,7 @@ export default function ProfilePage() {
                 {/* GPA */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">GPA</span>
+                    <span className="text-sm">Cumulative GPA</span>
                     <span className="font-bold text-lg">{studentInfo.gpa.toFixed(2)}</span>
                   </div>
                 </div>
@@ -177,7 +174,19 @@ export default function ProfilePage() {
                       {currentCourses.map((c, i) => (
                         <div key={i} className="border rounded-lg p-4 mb-3">
                           <div className="font-medium">{c.code} — {c.name}</div>
-                          <div className="text-sm text-muted-foreground">{c.credits} credits</div>
+
+                          <div className="text-sm text-muted-foreground mb-1">
+                            {c.credits} credits
+                          </div>
+
+                          <div className="text-sm">
+                            <span className="font-semibold">Grade:</span>{" "}
+                            {c.grade ? (
+                              <span className="text-green-700">{c.grade}</span>
+                            ) : (
+                              <span className="text-muted-foreground">Not Posted</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </CardContent>
@@ -221,6 +230,11 @@ export default function ProfilePage() {
                           <div key={i} className="border rounded-lg p-4 mb-2">
                             <div className="font-medium">{c.code} — {c.name}</div>
                             <div className="text-sm text-muted-foreground">{c.credits} credits</div>
+
+                            <div className="text-sm mt-1">
+                              <span className="font-semibold">Grade:</span>{" "}
+                              <span className="text-green-700">{c.grade ?? "N/A"}</span>
+                            </div>
                           </div>
                         ))}
                       </CardContent>

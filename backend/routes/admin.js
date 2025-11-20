@@ -3,7 +3,9 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
-// Get all transactions joined with student data
+/* ======================================================================
+   1. ADMIN TRANSACTION LOG
+   ====================================================================== */
 router.get("/transactions", async (req, res) => {
   try {
     const query = `
@@ -13,7 +15,7 @@ router.get("/transactions", async (req, res) => {
         c.courseid,
         c.coursename,
         c.credits,
-        c.cost AS amount_paid,
+        p.amount_paid,
         p.pay_date,
         e.enrollment_status
       FROM Payment p
@@ -25,7 +27,7 @@ router.get("/transactions", async (req, res) => {
         ON sec.sectionid = e.sectionid
       JOIN Course c
         ON c.courseid = sec.courseid
-      WHERE e.enrollment_status = 'Enrolled'
+      WHERE p.amount_paid > 0
       ORDER BY p.pay_date DESC;
     `;
 
@@ -38,51 +40,125 @@ router.get("/transactions", async (req, res) => {
   }
 });
 
+
 /* ======================================================================
-   2. UPDATE SECTION (Open/Close + Add Seats)
+   2. GET STUDENTS ENROLLED IN A SECTION (FOR ADMIN GRADE UI)
    ====================================================================== */
-router.post("/sections/update", async (req, res) => {
-  const { sectionId, capacity, status } = req.body;
+router.get("/students", async (req, res) => {
+  const { sectionId } = req.query;
+
+  if (!sectionId) {
+    return res.status(400).json({ error: "sectionId required" });
+  }
 
   try {
-    await pool.query(
+    const result = await pool.query(
       `
-      UPDATE Section
-      SET 
-        Capacity = COALESCE($2, Capacity),
-        Status = COALESCE($3, Status)
-      WHERE SectionID = $1
+      SELECT 
+        e.studentid,
+        s.studentname,
+        e.grade
+      FROM Enrollments e
+      JOIN Student s ON s.studentid = e.studentid
+      WHERE e.sectionid = $1
+      ORDER BY s.studentname;
       `,
-      [sectionId, capacity, status]
+      [sectionId]
     );
 
-    res.json({ success: true, message: "Section updated successfully" });
-
+    res.json({ students: result.rows });
   } catch (err) {
-    console.error("[ADMIN] Section Update Error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("[ADMIN] Fetch students error:", err);
+    res.status(500).json({ error: "Failed to fetch students" });
   }
 });
 
+
 /* ======================================================================
-   3. POST GRADES FOR ALL STUDENTS IN A SECTION
+   3. CONCURRENCY SAFE SECTION UPDATE
    ====================================================================== */
-/* Body:
-{
-  "sectionId": "SEC001",
-  "grades": [
-    { "studentId": "S001", "grade": "A" },
-    { "studentId": "S002", "grade": "B+" }
-  ]
-}
-*/
-router.post("/grades/post", async (req, res) => {
-  const { sectionId, grades } = req.body;
+router.post("/sections/update", async (req, res) => {
+  const { sectionId, capacity, status } = req.body;
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
+    const secRes = await client.query(
+      `SELECT * FROM Section WHERE SectionID = $1 FOR UPDATE`,
+      [sectionId]
+    );
+
+    if (secRes.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Section not found" });
+    }
+
+    const section = secRes.rows[0];
+    let newStatus = section.status;
+    let newCapacity = section.capacity;
+
+    if (capacity !== undefined) newCapacity = capacity;
+    if (status !== undefined) newStatus = status;
+
+    if (section.enrolledcount >= newCapacity) {
+      newStatus = "Closed";
+    }
+
+    if (section.enrolledcount < newCapacity && status !== "Closed") {
+      newStatus = "Open";
+    }
+
+    await client.query(
+      `
+      UPDATE Section
+      SET Capacity = $1,
+          Status = $2
+      WHERE SectionID = $3
+      `,
+      [newCapacity, newStatus, sectionId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "Section updated with concurrency control",
+      updated: { sectionId, capacity: newCapacity, status: newStatus }
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("[ADMIN] Section Update Error:", err);
+    res.status(500).json({ error: err.message });
+
+  } finally {
+    client.release();
+  }
+});
+
+
+/* ======================================================================
+   4. POST GRADES + GPA + CREDITS UPDATE (FULL FEATURE)
+   ====================================================================== */
+router.post("/grades/post", async (req, res) => {
+  const { sectionId, grades } = req.body;
+
+  if (!sectionId || !grades || grades.length === 0) {
+    return res.status(400).json({ error: "Missing sectionId or grades" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Lock to prevent enrollment changes while grading
+    await client.query(
+      `SELECT 1 FROM Section WHERE SectionID = $1 FOR UPDATE`,
+      [sectionId]
+    );
+
+    // Update each grade
     for (const g of grades) {
       await client.query(
         `
@@ -94,8 +170,51 @@ router.post("/grades/post", async (req, res) => {
       );
     }
 
+    /* ------------------------------------------------------
+       GPA + Total Credits recompute for every student graded
+    ------------------------------------------------------- */
+    await client.query(`
+      UPDATE Student s
+      SET 
+        Total_Credits = sub.total_credits,
+        GPA = sub.gpa
+      FROM (
+        SELECT 
+          e.StudentID,
+          SUM(c.Credits) FILTER (WHERE e.Grade IS NOT NULL) AS total_credits,
+          CASE
+            WHEN SUM(c.Credits) = 0 THEN 0
+            ELSE ROUND(
+              SUM(
+                c.Credits *
+                CASE e.Grade
+                  WHEN 'A'  THEN 4.0
+                  WHEN 'A-' THEN 3.7
+                  WHEN 'B+' THEN 3.3
+                  WHEN 'B'  THEN 3.0
+                  WHEN 'B-' THEN 2.7
+                  WHEN 'C+' THEN 2.3
+                  WHEN 'C'  THEN 2.0
+                  WHEN 'C-' THEN 1.7
+                  WHEN 'D'  THEN 1.0
+                  WHEN 'F'  THEN 0.0
+                  ELSE 0
+                END
+              ) 
+              / SUM(c.Credits), 3
+            )
+          END AS gpa
+        FROM Enrollments e
+        JOIN Section s2 ON s2.SectionID = e.SectionID
+        JOIN Course c ON c.CourseID = s2.CourseID
+        GROUP BY e.StudentID
+      ) AS sub
+      WHERE s.StudentID = sub.StudentID;
+    `);
+
     await client.query("COMMIT");
-    res.json({ success: true, message: "Grades submitted successfully" });
+
+    res.json({ success: true, message: "Grades + GPA updated successfully" });
 
   } catch (err) {
     await client.query("ROLLBACK");
@@ -106,5 +225,6 @@ router.post("/grades/post", async (req, res) => {
     client.release();
   }
 });
+
 
 export default router;

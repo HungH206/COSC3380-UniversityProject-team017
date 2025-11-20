@@ -1,35 +1,314 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>University DB Admin</title>
-  <style>
-    body { font-family: Arial; display: flex; gap: 20px; padding: 20px; }
-    div { border: 1px solid #ccc; padding: 15px; width: 300px; border-radius: 8px; }
-    pre { background: #f0f0f0; padding: 10px; max-height: 300px; overflow-y: scroll; }
-  </style>
-</head>
-<body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>University DB Admin SQL GUI</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #f5f5f7;
+        color: #111827;
+      }
 
-  <div>
-    <h3>1. Initialize Database</h3>
-    <button id="btn-setup">Run DB Setup</button>
-  </div>
+      header {
+        background: #111827;
+        color: #f9fafb;
+        padding: 16px 24px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
 
-  <div>
-    <h3>2. Run SQL Command</h3>
-    <textarea id="sql-input" rows="10" style="width:100%"></textarea>
-    <button id="btn-run-sql">Execute</button>
+      header h1 {
+        font-size: 20px;
+        margin: 0;
+      }
 
-    <h4>SQL Log</h4>
-    <pre id="sql-log"></pre>
-  </div>
+      header span {
+        font-size: 12px;
+        opacity: 0.8;
+      }
 
-  <div>
-    <h3>Results</h3>
-    <pre id="results"></pre>
-  </div>
+      main {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 1.2fr 1.5fr 1.3fr;
+        gap: 16px;
+      }
 
-<script src="admin-sql-app.js"></script>
-</body>
+      section {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      h2 {
+        font-size: 14px;
+        margin: 0 0 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .small {
+        font-size: 11px;
+        color: #6b7280;
+      }
+
+      label {
+        font-size: 12px;
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      input[type="text"],
+      textarea,
+      select {
+        width: 100%;
+        font-size: 12px;
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid #d1d5db;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+        max-height: 220px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      button {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        background: #111827;
+        color: #f9fafb;
+      }
+
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .row > * {
+        flex: 1;
+      }
+
+      .status {
+        font-size: 11px;
+        color: #4b5563;
+        min-height: 16px;
+      }
+
+      .status.ok {
+        color: #166534;
+      }
+
+      .status.err {
+        color: #b91c1c;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        border: 1px solid #e5e7eb;
+        padding: 3px 4px;
+        text-align: left;
+      }
+
+      th {
+        background: #f3f4f6;
+      }
+
+      pre {
+        background: #0b1120;
+        color: #e5e7eb;
+        border-radius: 4px;
+        padding: 6px;
+        font-size: 11px;
+        overflow: auto;
+        max-height: 260px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 1px 6px;
+        font-size: 10px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      footer {
+        padding: 8px 16px;
+        font-size: 10px;
+        color: #6b7280;
+      }
+
+      @media (max-width: 1100px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>University DB Admin SQL GUI</h1>
+        <span>ACID-safe enrollment, payments, and reporting &nbsp;|&nbsp; Team 017</span>
+      </div>
+      <div class="small">
+        Uses DB: <strong>finaluniversitydb</strong><br />
+        Trace files: <code>transaction.sql</code>, <code>query.sql</code>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT: setup + simulation -->
+      <section id="sec-setup">
+        <h2>
+          Setup &amp; Transactions
+          <span class="small">resets &amp; enrollment simulation</span>
+        </h2>
+
+        <!-- Reset -->
+        <div>
+          <label>Initialize / Reset dynamic tables</label>
+          <div class="row">
+            <button id="btn-reset-db">Reset DB (Enrollments, Payments, counters)</button>
+          </div>
+          <div id="status-reset" class="status"></div>
+        </div>
+
+        <hr />
+
+        <!-- Batch enrollment -->
+        <div>
+          <label>Simulate batch enrollment (students registering for one section)</label>
+          <div class="row">
+            <div>
+              <label for="section-id" class="small">SectionID (e.g. SEC05)</label>
+              <input id="section-id" type="text" value="SEC05" />
+            </div>
+          </div>
+          <div>
+            <label for="student-ids" class="small">Student IDs (comma separated)</label>
+            <textarea id="student-ids">S001,S002,S003,S004,S005</textarea>
+          </div>
+          <div class="row">
+            <button id="btn-run-enrollment">Run enrollment transaction</button>
+            <button id="btn-clear-enrollment" class="secondary">Clear results</button>
+          </div>
+          <div id="status-enrollment" class="status"></div>
+          <div id="enrollment-results"></div>
+        </div>
+      </section>
+
+      <!-- MIDDLE: browsing & reports -->
+      <section id="sec-data">
+        <h2>
+          Data Browser &amp; Reports
+          <span class="small">standard queries for TAs</span>
+        </h2>
+
+        <!-- Table browser -->
+        <div>
+          <label>Browse table</label>
+          <div class="row">
+            <select id="table-select">
+              <option value="Student">Student</option>
+              <option value="BankAccount">BankAccount</option>
+              <option value="Course">Course</option>
+              <option value="Section">Section</option>
+              <option value="Enrollments">Enrollments</option>
+              <option value="Payment">Payment</option>
+              <option value="Semester">Semester</option>
+              <option value="Schedule">Schedule</option>
+              <option value="SectionSchedule">SectionSchedule</option>
+              <option value="Prerequisite">Prerequisite</option>
+            </select>
+            <button id="btn-load-table">Load</button>
+          </div>
+          <div id="status-table" class="status"></div>
+          <div id="table-results"></div>
+        </div>
+
+        <hr />
+
+        <!-- Reports -->
+        <div>
+          <label>Reports</label>
+          <div class="row">
+            <button id="btn-report-enrollment">Enrollment summary</button>
+            <button id="btn-report-revenue">Revenue summary</button>
+          </div>
+          <div id="status-report" class="status"></div>
+          <div id="report-results"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: SQL console + log -->
+      <section id="sec-sql">
+        <h2>
+          SQL Console
+          <span class="small">SELECT-only, logged to query.sql</span>
+        </h2>
+
+        <div>
+          <label for="sql-input">SQL (read-only, SELECT / WITH only)</label>
+          <textarea id="sql-input">SELECT * FROM Section LIMIT 10;</textarea>
+          <div class="row">
+            <button id="btn-run-sql">Run SQL</button>
+            <button id="btn-clear-sql" class="secondary">Clear result</button>
+          </div>
+          <div id="status-sql" class="status"></div>
+          <div id="sql-result"></div>
+        </div>
+
+        <hr />
+
+        <div>
+          <label>SQL Sent to Server <span class="pill">live log</span></label>
+          <pre id="sql-log"></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Tip: open multiple browser tabs to test concurrent access to the same section (e.g. 5 students competing
+      for 4 seats). All transactions and main queries are traced to <code>transaction.sql</code> and
+      <code>query.sql</code>.
+    </footer>
+
+    <script src="./admin-sql-app.js"></script>
+  </body>
 </html>

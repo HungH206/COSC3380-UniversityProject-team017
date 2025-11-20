@@ -7,6 +7,7 @@ import enrollmentAdd from "./routes/enrollmentAdd.js";
 import enrollmentPay from "./routes/enrollmentPay.js";
 import enrollmentsRoute from "./routes/enrollments.js";
 import profileRoute from "./routes/profile.js";
+import adminRoutes from "./routes/admin.js";
 
 
 
@@ -19,6 +20,7 @@ app.use("/api/enroll/add", enrollmentAdd);
 app.use("/api/enroll/pay", enrollmentPay);
 app.use("/api/enrollments", enrollmentsRoute); // Reusing enrollmentAdd for enrollments
 app.use("/api/profile", profileRoute);
+app.use("/api/admin", adminRoutes);
 
 
 app.listen(3001, () =>

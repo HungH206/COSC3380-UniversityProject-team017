@@ -218,7 +218,7 @@ INSERT INTO Section
 (SectionID, CourseID, SemesterID, Mode, RoomID, InstructorID, EnrolledCount, Status, Capacity)
 VALUES
 ('SEC04', 'C004', 'SEM01', 'Online',     NULL,   5, 0, 'Open', 200),
-('SEC01', 'C001', 'SEM01', 'In-Person', 'R101', 2, 0, 'Open', 130),
+('SEC01', 'C001', 'SEM01', 'In-Person', 'R101', 2, 0, 'Open', 3),
 ('SEC02', 'C002', 'SEM01', 'In-Person', 'R102', 3, 0, 'Open', 125),
 ('SEC03', 'C003', 'SEM01', 'In-Person', 'R103', 4, 0, 'Open', 90),
 ('SEC05', 'C005', 'SEM01', 'In-Person', 'R105', 1, 0, 'Open', 50),

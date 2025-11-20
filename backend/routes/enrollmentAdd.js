@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
 
     if (sec.length === 0 || sec[0].status.trim() !== "Open") {
       await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Class unavailable." });
+      return res.status(400).json({ error: "Class not open." });
     }
 
     // 2. Prevent duplicate enrollment

@@ -7,7 +7,9 @@ router.get("/:studentId", async (req, res) => {
   const studentId = req.params.studentId;
 
   try {
-    // ============ 1. STUDENT INFO =============
+    // ==========================================
+    // 1. STUDENT INFO
+    // ==========================================
     const studentQuery = await pool.query(
       `SELECT 
           studentid,
@@ -16,7 +18,7 @@ router.get("/:studentId", async (req, res) => {
           total_credits
        FROM Student
        WHERE studentid = $1`,
-       [studentId]
+      [studentId]
     );
 
     if (studentQuery.rowCount === 0)
@@ -24,7 +26,9 @@ router.get("/:studentId", async (req, res) => {
 
     const student = studentQuery.rows[0];
 
-    // ============ 2. BANK ACCOUNT + AMOUNT DUE =============
+    // ==========================================
+    // 2. BANK INFO
+    // ==========================================
     const bankQuery = await pool.query(
       `SELECT 
           COALESCE(b.balance, 0) AS balance,
@@ -32,18 +36,22 @@ router.get("/:studentId", async (req, res) => {
        FROM BankAccount b
        LEFT JOIN Payment p ON p.studentid = b.studentid
        WHERE b.studentid = $1`,
-       [studentId]
+      [studentId]
     );
 
     const bank = bankQuery.rows[0] || { balance: 0, amount_due: 0 };
 
-    // ============ 3. CURRENT SEMESTER COURSES =============
-    const currentQuery = await pool.query(`
+    // ==========================================
+    // 3. CURRENT SEMESTER → INCLUDE GRADE
+    // ==========================================
+    const currentQuery = await pool.query(
+      `
       SELECT
         c.CourseID AS code,
         c.CourseName AS name,
         c.Credits,
         c.Cost AS price,
+        e.Grade,
         CONCAT(sch.DayOfWeek, ' ', sch.StartTime, '-', sch.EndTime) AS schedule,
         sem.Term || ' ' || sem.Year AS semester
       FROM Enrollments e
@@ -53,15 +61,20 @@ router.get("/:studentId", async (req, res) => {
       JOIN Schedule sch ON sch.ScheduleID = ss.ScheduleID
       JOIN Semester sem ON sem.SemesterID = sec.SemesterID
       WHERE e.StudentID = $1
-      AND e.Enrollment_status = 'Enrolled';
-    `, [studentId]);
+      AND e.Enrollment_status = 'Enrolled'
+      `,
+      [studentId]
+    );
 
     const currentCourses = mergeSchedules(currentQuery.rows);
     const currentSemester =
       currentCourses.length > 0 ? currentCourses[0].semester : "Fall 2025";
 
-    // ============ 4. NEXT SEMESTER COURSES =============
-    const nextQuery = await pool.query(`
+    // ==========================================
+    // 4. NEXT SEMESTER COURSES (NO GRADES)
+    // ==========================================
+    const nextQuery = await pool.query(
+      `
       SELECT
         c.CourseID AS code,
         c.CourseName AS name,
@@ -77,14 +90,19 @@ router.get("/:studentId", async (req, res) => {
       JOIN Semester sem ON sem.SemesterID = sec.SemesterID
       WHERE e.StudentID = $1
       AND e.Enrollment_status = 'Enrolled'
-    `, [studentId]);
+      `,
+      [studentId]
+    );
 
     const upcomingCourses = mergeSchedules(nextQuery.rows);
     const nextSemester =
       upcomingCourses.length > 0 ? upcomingCourses[0].semester : "Spring 2026";
 
-    // ============ 5. COURSE HISTORY =============
-    const historyQuery = await pool.query(`
+    // ==========================================
+    // 5. HISTORY COURSES (GRADE INCLUDED)
+    // ==========================================
+    const historyQuery = await pool.query(
+      `
       SELECT
         c.CourseID AS code,
         c.CourseName AS name,
@@ -98,11 +116,15 @@ router.get("/:studentId", async (req, res) => {
       WHERE e.StudentID = $1
       AND e.Grade IS NOT NULL
       ORDER BY sem.Year DESC, sem.Term DESC
-    `, [studentId]);
+      `,
+      [studentId]
+    );
 
     const completedCourses = mergeBySemester(historyQuery.rows);
 
-    // ============ RETURN ALL DATA ============
+    // ==========================================
+    // RETURN ALL
+    // ==========================================
     res.json({
       student,
       bank,
@@ -119,17 +141,19 @@ router.get("/:studentId", async (req, res) => {
   }
 });
 
-// Utility: merge duplicate schedules
+// Merge schedules for duplicate rows (MWF, TR)
 function mergeSchedules(rows) {
   const map = {};
   for (const r of rows) {
-    if (!map[r.code]) map[r.code] = { ...r };
-    else map[r.code].schedule += " / " + r.schedule;
+    if (!map[r.code])
+      map[r.code] = { ...r };
+    else
+      map[r.code].schedule += " / " + r.schedule;
   }
   return Object.values(map);
 }
 
-// Utility: group by semester
+// Group completed courses by semester
 function mergeBySemester(rows) {
   const out = {};
   rows.forEach((r) => {
