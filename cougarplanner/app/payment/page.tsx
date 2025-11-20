@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { Navigation } from "@/components/navigation"
@@ -37,6 +38,8 @@ export default function PaymentPage() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null)
   const { toast } = useToast()
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+
 
   useEffect(() => {
     fetchCartItems()
@@ -80,7 +83,22 @@ export default function PaymentPage() {
         }),
       })
 
-      if (!transactionResponse.ok) throw new Error("Payment failed")
+      if (!transactionResponse.ok) {
+  const errBody = await transactionResponse.json();
+  const message = errBody.error || "Payment failed. Please try again.";
+
+  setPaymentError(message);
+
+
+  toast({
+    title: "Unable to Complete Registration",
+    description: errBody.error || "An unexpected error occurred.",
+    variant: "destructive",
+  });
+
+  setIsProcessing(false);
+  return;
+}
 
       const transactionData = await transactionResponse.json()
       
@@ -95,7 +113,9 @@ export default function PaymentPage() {
         courses: cartItems
       }
       
-      setLastTransaction(transaction)
+      setLastTransaction(transaction);
+      setShowSuccessDialog(true);
+      setCartItems([]);
 
       await fetch("/api/enrollments", {
         method: "POST",
@@ -113,11 +133,11 @@ export default function PaymentPage() {
 
       setShowSuccessDialog(true)
       setCartItems([])
-    } catch (error) {
+    } catch (error: any) {
       console.error("[v0] Error processing payment:", error)
       toast({
         title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
+        description: error.message,
         variant: "destructive",
       })
     } finally {
@@ -204,6 +224,15 @@ const percentagePaid = total > 0 ? (paid / total) * 100 : 0
           <h1 className="text-3xl font-bold tracking-tight text-balance">Payment Portal</h1>
           <p className="mt-2 text-muted-foreground text-pretty">Review your course selections and complete payment</p>
         </div>
+
+        {/* 🔴 Payment Error Message */}
+  {paymentError && (
+    <div className="mb-6 rounded-md border border-red-300 bg-red-100 p-4 text-red-800">
+      <strong className="block font-semibold mb-1">Registration Error</strong>
+      <span>{paymentError}</span>
+    </div>
+  )}
+
 
         <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
           <DialogContent>

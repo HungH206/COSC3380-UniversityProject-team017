@@ -209,3 +209,128 @@ SELECT * FROM Section
 SELECT * FROM Section LIMIT 50;
 -- params: []
 
+-- 2025-11-20T00:33:37.620Z
+SELECT * FROM Section LIMIT 10
+-- params: []
+
+-- 2025-11-20T02:18:04.580Z
+SELECT * FROM Student LIMIT 50;
+-- params: []
+
+-- 2025-11-20T02:18:06.273Z
+SELECT
+      c.CourseID,
+      c.CourseName,
+      sec.SectionID,
+      sec.Status,
+      sec.Capacity,
+      sec.EnrolledCount,
+      sem.Term || ' ' || sem.Year AS Semester
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    ORDER BY Semester, c.CourseID, sec.SectionID;
+-- params: []
+
+-- 2025-11-20T02:18:08.371Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-11-20T02:18:40.051Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-11-20T02:19:54.699Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-11-20T02:19:55.725Z
+SELECT
+      c.CourseID,
+      c.CourseName,
+      sec.SectionID,
+      sec.Status,
+      sec.Capacity,
+      sec.EnrolledCount,
+      sem.Term || ' ' || sem.Year AS Semester
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    ORDER BY Semester, c.CourseID, sec.SectionID;
+-- params: []
+
+-- 2025-11-20T02:21:59.881Z
+SELECT
+      c.CourseID,
+      c.CourseName,
+      sec.SectionID,
+      sec.Status,
+      sec.Capacity,
+      sec.EnrolledCount,
+      sem.Term || ' ' || sem.Year AS Semester
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    ORDER BY Semester, c.CourseID, sec.SectionID;
+-- params: []
+
+-- 2025-11-20T02:22:01.973Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
