@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { Navigation } from "@/components/navigation"
@@ -15,7 +16,6 @@ import {
   Trash2,
   Lock,
   LockOpen,
-  FileText,
   GraduationCap,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -32,7 +32,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Course {
+  // This is the *course* id (CourseID from DB or a derived key)
   id: string
+  // This is the *section* id (SectionID from DB) – used for open/close + capacity
+  sectionid?: string
+
   code: string
   name: string
   instructor: string
@@ -42,11 +46,10 @@ interface Course {
   capacity: number
   credits: number
   price: number
-  available: boolean
+  available: boolean // true if status = 'Open'
 }
 
 interface Transaction {
-<<<<<<< Updated upstream
   studentid: string
   studentname: string
   courseid: string
@@ -55,15 +58,6 @@ interface Transaction {
   amount_paid: number
   pay_date: string
   enrollment_status: string
-=======
-  id: string
-  amount: number
-  status: string
-  date: string
-  paymentMethod: string
-  courses: Course[]
-  invoiceNumber: string
->>>>>>> Stashed changes
 }
 
 export default function AdminPage() {
@@ -75,13 +69,12 @@ export default function AdminPage() {
   const [selectedStudent, setSelectedStudent] = useState("")
   const [selectedGrade, setSelectedGrade] = useState("")
   const [loading, setLoading] = useState(true)
-<<<<<<< Updated upstream
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [studentsInSection, setStudentsInSection] = useState<any[]>([])
-=======
->>>>>>> Stashed changes
 
-  // Fetch courses and transactions
+  // ------------------------------------------------------------------
+  // Fetch courses + transactions
+  // ------------------------------------------------------------------
   useEffect(() => {
     fetchCourses()
     fetchTransactions()
@@ -89,11 +82,46 @@ export default function AdminPage() {
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch("/api/course")
+      const response = await fetch("/api/course") // Next.js API, not backend directly
       const data = await response.json()
-      setCourses(data)
+
+      // Normalize shape so admin can rely on consistent fields
+      const normalized: Course[] = data.map((row: any) => {
+        const code =
+          row.code ??
+          (row.department && row.course
+            ? `${row.department} ${row.course}`
+            : row.id ?? "")
+
+        // Build a readable schedule if we only have days + times from backend
+        const schedule =
+          row.schedule ??
+          (row.days && row.starttime && row.endtime
+            ? `${row.days} ${String(row.starttime).slice(0, 5)}–${String(row.endtime).slice(0, 5)}`
+            : "")
+
+        return {
+          id: row.id, // CourseID (from backend query alias)
+          sectionid: row.sectionid ?? row.sectionId ?? row.id, // SectionID – critical for admin updates
+          code,
+          name: row.name,
+          instructor: row.instructor ?? row.instructorname ?? "",
+          schedule,
+          semester: row.semester,
+          enrolled: Number(row.enrolled ?? row.enrolledcount ?? 0),
+          capacity: Number(row.capacity ?? 0),
+          credits: Number(row.credits ?? 0),
+          price: Number(row.price ?? row.cost ?? 0),
+          available:
+            typeof row.available === "boolean"
+              ? row.available
+              : (row.status ?? "").trim().toLowerCase() === "open",
+        }
+      })
+
+      setCourses(normalized)
     } catch (error) {
-      console.error("[v0] Error fetching courses:", error)
+      console.error("[admin] Error fetching courses:", error)
     } finally {
       setLoading(false)
     }
@@ -101,8 +129,7 @@ export default function AdminPage() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch("/api/admin/transactions")
-      if (!response.ok) throw new Error("Failed to fetch transactions")
+      const response = await fetch("http://localhost:3001/api/admin/transactions")
       const data = await response.json()
       setTransactions(data.transactions || [])
     } catch (error) {
@@ -110,43 +137,83 @@ export default function AdminPage() {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Toggle course open/closed (ACID-safe via backend transaction)
+  // ------------------------------------------------------------------
   const toggleCourseStatus = async (courseId: string) => {
     const course = courses.find((c) => c.id === courseId)
     if (!course) return
 
-    const updatedCourse = { ...course, available: !course.available }
-    setCourses(courses.map((c) => (c.id === courseId ? updatedCourse : c)))
+    // Use SectionID for the admin API
+    const sectionId = course.sectionid || course.id
+    const newStatus = course.available ? "Closed" : "Open"
 
-    console.log(`[v0] Course ${course.code} status changed to ${updatedCourse.available ? "Open" : "Closed"}`)
+    try {
+      const response = await fetch("http://localhost:3001/api/admin/sections/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionId,
+          status: newStatus,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to update section")
+
+      console.log("[admin] Updated section:", data)
+
+      // Optimistic UI update: flip the 'available' flag
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.id === courseId ? { ...c, available: newStatus === "Open" } : c,
+        ),
+      )
+    } catch (err) {
+      console.error("[admin] Toggle status error:", err)
+      alert("Failed to update section status. Check console.")
+    }
   }
 
   const deleteCourse = async (courseId: string) => {
     if (!confirm("Are you sure you want to delete this course?")) return
 
+    // (Optional) You could also call a backend route here to actually delete.
     setCourses(courses.filter((c) => c.id !== courseId))
-    console.log(`[v0] Course ${courseId} deleted`)
+    console.log(`[admin] Course ${courseId} deleted (frontend only)`)
   }
 
-<<<<<<< Updated upstream
   const openGradeDialog = async (course: Course) => {
   setSelectedCourse(course)
   setGradeDialogOpen(true)
   setSelectedStudent("")
   setSelectedGrade("")
-=======
-  const openGradeDialog = (course: Course) => {
-    setSelectedCourse(course)
-    setGradeDialogOpen(true)
-  }
->>>>>>> Stashed changes
 
-  const postGrade = () => {
-    if (!selectedStudent || !selectedGrade) {
+  const sectionId = course.sectionid || course.id
+  setLoadingStudents(true)
+
+  try {
+    const res = await fetch(
+      `http://localhost:3001/api/admin/students?sectionId=${sectionId}`
+    )
+    const data = await res.json()
+
+    setStudentsInSection(data.students || [])
+  } catch (err) {
+    console.error("[admin] Failed to fetch students:", err)
+    setStudentsInSection([])
+  } finally {
+    setLoadingStudents(false)
+  }
+}
+
+
+  const postGrade = async () => {
+    if (!selectedCourse || !selectedStudent || !selectedGrade) {
       alert("Please select a student and grade")
       return
     }
 
-<<<<<<< Updated upstream
     const sectionId = selectedCourse.sectionid || selectedCourse.id
 
     try {
@@ -177,13 +244,6 @@ export default function AdminPage() {
       console.error("[admin] Grade post error:", err)
       alert("Failed to post grade. Check console.")
     }
-=======
-    console.log(`[v0] Grade posted: ${selectedGrade} for student ${selectedStudent} in course ${selectedCourse?.code}`)
-    alert(`Grade ${selectedGrade} posted successfully for student ${selectedStudent}`)
-    setGradeDialogOpen(false)
-    setSelectedStudent("")
-    setSelectedGrade("")
->>>>>>> Stashed changes
   }
 
   const filteredCourses = courses.filter(
@@ -193,12 +253,12 @@ export default function AdminPage() {
       course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Calculate stats
+  // Stats
   const stats = {
     totalCourses: courses.length,
     openCourses: courses.filter((c) => c.available).length,
     totalTransactions: transactions.length,
-    totalRevenue: transactions.reduce((sum, t) => sum + t.amount, 0),
+    totalRevenue: transactions.reduce((sum, t) => sum + (Number(t.amount_paid) || 0), 0),
   }
 
   return (
@@ -208,7 +268,9 @@ export default function AdminPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-balance">Admin Dashboard</h1>
-          <p className="mt-2 text-muted-foreground text-pretty">Manage courses, view transactions, and post grades</p>
+          <p className="mt-2 text-muted-foreground text-pretty">
+            Manage courses, view transactions, and post grades
+          </p>
         </div>
 
         {/* Stats Cards */}
@@ -236,7 +298,7 @@ export default function AdminPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-chart-3" />
+                <TrendingUp className="h-5 w-5" />
                 <CardDescription>Transactions</CardDescription>
               </div>
               <CardTitle className="text-3xl">{stats.totalTransactions}</CardTitle>
@@ -246,7 +308,7 @@ export default function AdminPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-chart-4" />
+                <DollarSign className="h-5 w-5" />
                 <CardDescription>Total Revenue</CardDescription>
               </div>
               <CardTitle className="text-3xl">${stats.totalRevenue.toLocaleString()}</CardTitle>
@@ -304,7 +366,8 @@ export default function AdminPage() {
                             {course.instructor} • {course.schedule} • {course.semester}
                           </div>
                           <div className="mt-1 text-sm text-muted-foreground">
-                            Enrolled: {course.enrolled}/{course.capacity} • {course.credits} credits • ${course.price}
+                            Enrolled: {course.enrolled}/{course.capacity} • {course.credits} credits • $
+                            {course.price}
                           </div>
                         </div>
 
@@ -338,7 +401,10 @@ export default function AdminPage() {
                                 <GraduationCap className="mr-2 h-4 w-4" />
                                 Post Grades
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => deleteCourse(course.id)}>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => deleteCourse(course.id)}
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete Course
                               </DropdownMenuItem>
@@ -367,39 +433,38 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {transactions.map((transaction) => (
-                      <div key={transaction.id} className="rounded-lg border border-border p-4">
+                    {transactions.map((transaction, idx) => (
+                      <div key={idx} className="rounded-lg border border-border p-4">
                         <div className="mb-3 flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold">{transaction.id}</span>
-                              <Badge variant="default">{transaction.status}</Badge>
+                              <span className="font-semibold">{transaction.studentname}</span>
+                              <Badge variant="default">{transaction.enrollment_status}</Badge>
                             </div>
                             <div className="mt-1 text-sm text-muted-foreground">
-                              {new Date(transaction.date).toLocaleString()}
+                              {transaction.pay_date
+                                ? new Date(transaction.pay_date).toLocaleString()
+                                : "No date"}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-xl font-bold">${transaction.amount.toLocaleString()}</div>
-                            <div className="text-xs text-muted-foreground">{transaction.paymentMethod}</div>
+                            <div className="text-xl font-bold">
+                              ${(Number(transaction.amount_paid) || 0).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Student ID: {transaction.studentid}
+                            </div>
                           </div>
                         </div>
 
                         <div className="space-y-2 border-t border-border pt-3">
-                          <div className="text-sm font-medium">Courses Enrolled:</div>
-                          {transaction.courses.map((course: Course, idx: number) => (
-                            <div key={idx} className="flex items-center justify-between text-sm text-muted-foreground">
-                              <span>
-                                {course.code} - {course.name}
-                              </span>
-                              <span className="font-medium">${course.price}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Invoice: {transaction.invoiceNumber}</span>
+                          <div className="text-sm font-medium">Course Enrolled:</div>
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>
+                              {transaction.courseid} - {transaction.coursename}
+                            </span>
+                            <span className="font-medium">{transaction.credits} credits</span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -450,8 +515,10 @@ export default function AdminPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Post Grade</DialogTitle>
-            <DialogDescription>{selectedCourse ? `${selectedCourse.code} - ${selectedCourse.name}` : ''}</DialogDescription>
-           </DialogHeader>
+            <DialogDescription>
+              {selectedCourse ? `${selectedCourse.code} - ${selectedCourse.name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -461,7 +528,6 @@ export default function AdminPage() {
                   <SelectValue placeholder="Select student" />
                 </SelectTrigger>
                 <SelectContent>
-<<<<<<< Updated upstream
   {loadingStudents ? (
     <SelectItem value="loading">Loading...</SelectItem>
   ) : studentsInSection.length === 0 ? (
@@ -475,12 +541,6 @@ export default function AdminPage() {
   )}
 </SelectContent>
 
-=======
-                  <SelectItem value="1234344">Hung (1234344)</SelectItem>
-                  <SelectItem value="STU001">John Doe (STU001)</SelectItem>
-                  <SelectItem value="STU002">Jane Smith (STU002)</SelectItem>
-                </SelectContent>
->>>>>>> Stashed changes
               </Select>
             </div>
 

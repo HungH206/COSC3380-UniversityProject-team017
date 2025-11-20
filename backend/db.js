@@ -6,19 +6,11 @@ dotenv.config();
 const { Pool } = pkg;
 
 export const pool = new Pool({
-<<<<<<< Updated upstream
   host: "localhost",
   port: 5432,
   database: "finaluniversitydb",  // or your custom DB (coursedb)
   user: "postgres",
   password: "2006hung",
-=======
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME || "finaluniversitydb",
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "Thuy1999",
->>>>>>> Stashed changes
 });
 
 // --- auto create tables on first run ---

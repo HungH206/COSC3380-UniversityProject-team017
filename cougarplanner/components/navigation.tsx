@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 const studentNavItems = [
   { href: "/catalog", label: "Course Catalog", icon: BookOpen },
-  { href: "/schedule", label: "Schedule Builder", icon: Calendar },
+ // { href: "/schedule", label: "Schedule Builder", icon: Calendar },
   { href: "/payment", label: "Payment", icon: CreditCard },
 ]
 
@@ -74,14 +74,12 @@ export function Navigation({ isAdmin = false }: { isAdmin?: boolean }) {
                 My Profile
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link
-                    href={isAdmin ? "/admin" : "/profile"}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <User className="h-4 w-4" />
-                    {isAdmin ? "Admin Dashboard" : "My Profile"}
-                  </Link>
+                <DropdownMenuItem 
+                  onClick={() => router.push(isAdmin ? "/admin/profile" : "/profile")}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <User className="h-4 w-4" />
+                  My Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer">
                   <LogOut className="h-4 w-4" />
