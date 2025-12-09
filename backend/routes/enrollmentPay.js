@@ -67,7 +67,7 @@ router.get("/", async (req, res) => {
 
 /* ============================================================
    POST /api/enroll/pay
-   FULL PAYMENT + BATCH ENROLLMENT
+   FULL PAYMENT + BATCH ENROLLMENT | VALIDATED
 ============================================================ */
 router.post("/", async (req, res) => {
   const { student_id, cartItems } = req.body;
@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
     for (const item of cartItems) {
       const sectionId = item.id;
 
-      // Get course pricing + credits
+      // === Get Course Info ===
       const { rows: info } = await client.query(
         `SELECT c.CourseID, c.Credits, c.Cost
          FROM Course c 
@@ -95,48 +95,71 @@ router.post("/", async (req, res) => {
         [sectionId]
       );
       if (!info.length) throw new Error("Course not found");
-
       const { courseid, credits, cost } = info[0];
-      totalCharge += Number(cost);
 
-      // Deduct from bank
+      // === Check Prerequisites ===
+      const { rows: prereq } = await client.query(
+        `SELECT COUNT(*) AS missing
+         FROM Prerequisite p
+         WHERE p.CourseID = $1
+         AND NOT EXISTS (
+              SELECT 1 FROM Enrollments e
+              JOIN Section s2 ON s2.SectionID = e.SectionID
+              WHERE e.StudentID = $2
+              AND s2.CourseID = p.PrereCourseID
+              AND e.Grade IS NOT NULL
+         )`,
+        [courseid, student_id]
+      );
+      if (prereq[0].missing > 0)
+        throw new Error(`Missing prerequisites for ${item.code}`);
+
+      // === Check Balance ===
+      const { rows: bal } = await client.query(
+        `SELECT Balance FROM BankAccount WHERE StudentID = $1`,
+        [student_id]
+      );
+      if (!bal.length) throw new Error("Bank account missing");
+      if (Number(bal[0].balance) < Number(cost))
+        throw new Error("Insufficient balance!");
+
+      // === Payment Deduction ===
       await client.query(
-        `UPDATE BankAccount 
-         SET Balance = Balance - $2 
+        `UPDATE BankAccount SET Balance = Balance - $2
          WHERE StudentID = $1`,
         [student_id, cost]
       );
 
-      // Confirm enrollment
+      // === Confirm Enrollment ===
       await client.query(
-        `UPDATE Enrollments
-         SET Enrollment_status = 'Enrolled'
+        `UPDATE Enrollments SET Enrollment_status = 'Enrolled'
          WHERE StudentID = $1 AND SectionID = $2`,
         [student_id, sectionId]
       );
 
-      // Increase section count
+      // === Section Count ===
       await client.query(
-        `UPDATE Section 
-         SET EnrolledCount = EnrolledCount + 1
-             , Status = CASE WHEN EnrolledCount + 1 >= Capacity 
-                             THEN 'Closed' ELSE 'Open' END
+        `UPDATE Section SET EnrolledCount = EnrolledCount + 1,
+           Status = CASE 
+               WHEN EnrolledCount + 1 >= Capacity THEN 'Closed'
+               ELSE 'Open'
+           END
          WHERE SectionID = $1`,
         [sectionId]
       );
 
-      // Add credits
+      // === Add Credits to Student ===
       await client.query(
-        `UPDATE Student 
-         SET Total_Credits = Total_Credits + $2
+        `UPDATE Student SET Total_Credits = Total_Credits + $2
          WHERE StudentID = $1`,
         [student_id, credits]
       );
 
+      totalCharge += Number(cost);
       paidCourses.push(sectionId);
     }
 
-    // ⬇⬇ THIS FIXES TRANSACTION LOG & AMOUNT DUE ⬇⬇
+    // === Log Payment ===
     await client.query(
       `UPDATE Payment
        SET Amount_due = 0,
@@ -150,18 +173,18 @@ router.post("/", async (req, res) => {
 
     res.json({
       success: true,
+      message: "Payment successful",
       charged: totalCharge,
       paidCourses
     });
 
   } catch (err) {
     await client.query("ROLLBACK");
+    console.error("PAY ERROR:", err);
     res.status(400).json({ error: err.message });
   } finally {
     client.release();
   }
 });
-
-
 
 export default router;
