@@ -231,7 +231,25 @@
           <div id="status-enrollment" class="status"></div>
           <div id="enrollment-results"></div>
         </div>
+
+        <hr />
+
+        <!-- Batch payment -->
+        <div>
+          <label>Batch Payment: Deduct Amount_due from Bank Accounts</label>
+          <div>
+            <label for="payment-student-ids" class="small">Student IDs (comma separated)</label>
+            <textarea id="payment-student-ids">S001,S002,S003</textarea>
+          </div>
+          <div class="row">
+            <button id="btn-run-batch-payment">Run batch payment</button>
+            <button id="btn-clear-payment" class="secondary">Clear results</button>
+          </div>
+          <div id="status-payment" class="status"></div>
+          <div id="payment-results"></div>
+        </div>
       </section>
+
 
       <!-- MIDDLE: browsing & reports -->
       <section id="sec-data">

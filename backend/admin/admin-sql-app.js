@@ -164,7 +164,63 @@ document.addEventListener("DOMContentLoaded", () => {
       setStatus(statusEnrollment, "");
     });
 
-  // 3) Table browser
+    // 2B) Batch Payment
+document.getElementById("btn-run-batch-payment").addEventListener("click", async () => {
+  const rawStudents = document.getElementById("payment-student-ids").value.trim();
+  const statusPayment = document.getElementById("status-payment");
+  const paymentResults = document.getElementById("payment-results");
+
+  if (!rawStudents) {
+    setStatus(statusPayment, "StudentIDs are required", "err");
+    return;
+  }
+
+  const students = rawStudents.split(",").map(s => s.trim()).filter(Boolean);
+  if (!students.length) {
+    setStatus(statusPayment, "No valid Student IDs", "err");
+    return;
+  }
+
+  setStatus(statusPayment, "Processing payments...");
+  paymentResults.innerHTML = "";
+
+  try {
+    const data = await apiJson(
+      "/api/gui/enroll-batch/pay",
+      { method: "POST", body: { students } },
+      "[PAY]"
+    );
+
+    setStatus(statusPayment, "Batch payment completed", "ok");
+
+    // Show results
+    let html = "<div style='max-height:200px;overflow:auto'><table>";
+    html += "<thead><tr><th>StudentID</th><th>Success</th><th>Message</th></tr></thead><tbody>";
+    for (const r of data.results) {
+      html += `
+        <tr>
+          <td>${r.studentId}</td>
+          <td>${r.success ? "✔" : "✖"}</td>
+          <td>${r.message || ""}</td>
+        </tr>`;
+    }
+    html += "</tbody></table></div>";
+
+    paymentResults.innerHTML = html;
+
+  } catch (e) {
+    setStatus(statusPayment, e.message, "err");
+  }
+});
+
+// Clear Payment Results
+document.getElementById("btn-clear-payment").addEventListener("click", () => {
+  document.getElementById("payment-results").innerHTML = "";
+  setStatus(statusPayment, "");
+});
+
+
+  // 4) Table browser
   document.getElementById("btn-load-table").addEventListener("click", async () => {
     const table = tableSelect.value;
     setStatus(statusTable, `Loading table ${table}...`);
@@ -188,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 4) Reports
+  // 5) Reports
   document
     .getElementById("btn-report-enrollment")
     .addEventListener("click", async () => {
@@ -235,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-  // 5) SQL console (SELECT / WITH only)
+  // 6) SQL console (SELECT / WITH only)
   document.getElementById("btn-run-sql").addEventListener("click", async () => {
     const sql = sqlInput.value.trim();
     if (!sql) {

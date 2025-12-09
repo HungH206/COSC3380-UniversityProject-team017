@@ -242,9 +242,102 @@ COMMIT;
     statements: ["See transaction.sql for the full transaction template."],
   });
 });
+/**
+ * 3) Batch Payment for All Students with Amount_due > 0
+ * - Deducts balances
+ * - Moves Amount_due → Amount_paid
+ * - Writes Pay_date
+ */
+app.post("/api/gui/enroll-batch/pay", async (req, res) => {
+  const { students } = req.body || {};
+  if (!Array.isArray(students) || students.length === 0) {
+    return res.status(400).json({
+      error: "students[] is required",
+    });
+  }
+
+  const results = [];
+
+  for (const studentId of students) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Read outstanding debt
+      const dueRes = await client.query(
+        `SELECT Amount_due FROM Payment WHERE StudentID = $1`,
+        [studentId]
+      );
+
+      if (!dueRes.rowCount) {
+        throw new Error(`No payment record found for ${studentId}`);
+      }
+
+      const amountDue = Number(dueRes.rows[0].amount_due);
+      if (amountDue <= 0) {
+        throw new Error(`No outstanding balance for ${studentId}`);
+      }
+
+      // Check bank balance
+      const balRes = await client.query(
+        `SELECT Balance FROM BankAccount WHERE StudentID = $1`,
+        [studentId]
+      );
+      const currentBalance = Number(balRes.rows[0].balance);
+
+      if (currentBalance < amountDue) {
+        throw new Error(
+          `Insufficient funds for ${studentId} — Needs $${amountDue}, Has $${currentBalance}`
+        );
+      }
+
+      // Deduct from bank
+      await client.query(
+        `UPDATE BankAccount
+         SET Balance = Balance - $2
+         WHERE StudentID = $1`,
+        [studentId, amountDue]
+      );
+
+      // Update payment record
+      await client.query(
+        `UPDATE Payment
+         SET Amount_due = 0,
+             Amount_paid = COALESCE(Amount_paid,0) + $2,
+             Pay_date = CURRENT_TIMESTAMP
+         WHERE StudentID = $1`,
+        [studentId, amountDue]
+      );
+
+      await client.query("COMMIT");
+
+      results.push({
+        studentId,
+        success: true,
+        message: `Paid $${amountDue.toFixed(2)}`,
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("[GUI] batch-pay error:", err.message);
+      results.push({
+        studentId,
+        success: false,
+        message: err.message,
+      });
+    } finally {
+      client.release();
+    }
+  }
+
+  res.json({
+    message: "Batch payment processing completed",
+    results,
+  });
+});
+
 
 /**
- * 3) Table browser
+ * 4) Table browser
  *    SELECT * FROM <table> LIMIT 50
  */
 const ALLOWED_TABLES = [

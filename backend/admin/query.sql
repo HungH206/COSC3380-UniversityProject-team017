@@ -2209,3 +2209,126 @@ SELECT
     ORDER BY Semester, c.CourseID;
 -- params: []
 
+-- 2025-12-09T04:13:11.802Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:18:00.075Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:18:31.118Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:18:43.963Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:19:07.012Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:19:07.064Z
+SELECT
+      sem.Term || ' ' || sem.Year AS Semester,
+      c.CourseID,
+      c.CourseName,
+      COUNT(DISTINCT e.StudentID) AS NumStudents,
+      SUM(c.Cost) AS TuitionCharged,
+      SUM(COALESCE(p.Amount_paid, 0)) AS AmountPaid
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    JOIN Enrollments e ON e.SectionID = sec.SectionID
+    LEFT JOIN Payment p ON p.StudentID = e.StudentID
+    WHERE e.Enrollment_status = 'Enrolled'
+    GROUP BY sem.Term, sem.Year, c.CourseID, c.CourseName
+    ORDER BY Semester, c.CourseID;
+-- params: []
+
+-- 2025-12-09T04:19:08.172Z
+SELECT
+      c.CourseID,
+      c.CourseName,
+      sec.SectionID,
+      sec.Status,
+      sec.Capacity,
+      sec.EnrolledCount,
+      sem.Term || ' ' || sem.Year AS Semester
+    FROM Section sec
+    JOIN Course c ON c.CourseID = sec.CourseID
+    JOIN Semester sem ON sem.SemesterID = sec.SemesterID
+    ORDER BY Semester, c.CourseID, sec.SectionID;
+-- params: []
+
