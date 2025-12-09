@@ -47,7 +47,18 @@ export default function PaymentPage() {
 
   const fetchCartItems = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/enroll/pay")
+      const studentId = localStorage.getItem("studentId")
+      if (!studentId) {
+        toast({
+          title: "Not logged in",
+          description: "Please log in first.",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch(`http://localhost:3001/api/enroll/pay?studentId=${studentId}`)
       if (!response.ok) throw new Error("Failed to fetch cart")
 
       const data = await response.json()
@@ -72,16 +83,29 @@ export default function PaymentPage() {
       const fees = 450
       const total = tuitionTotal + fees
 
-      const transactionResponse = await fetch("http://localhost:3001/api/enroll/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student_id: "S001",
-          cartItems,
-          total,
-          paymentMethod: "Credit Card",
-        }),
-      })
+      const studentId = localStorage.getItem("studentId")
+
+  if (!studentId) {
+    toast({
+      title: "Not logged in",
+      description: "Please log in first.",
+      variant: "destructive",
+    })
+    setIsProcessing(false)
+    return
+  }
+
+const transactionResponse = await fetch("http://localhost:3001/api/enroll/pay", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    student_id: studentId,
+    cartItems,
+    total,
+    paymentMethod: "Credit Card",
+  }),
+})
+
 
       if (!transactionResponse.ok) {
   const errBody = await transactionResponse.json();

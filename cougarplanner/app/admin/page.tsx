@@ -264,8 +264,10 @@ export default function AdminPage() {
     totalCourses: courses.length,
     openCourses: courses.filter((c) => c.available).length,
     totalTransactions: transactions.length,
-    totalRevenue: transactions.reduce((sum, tx) => sum + Number(tx.totalamount || 0), 0)
+    totalRevenue: transactions.reduce((sum, tx) => sum + Number(tx.amountpaid || 0), 0)
   }
+
+  
 
   return (
     <div className="min-h-screen bg-background">
@@ -290,6 +292,20 @@ export default function AdminPage() {
               <CardTitle className="text-3xl">{stats.totalCourses}</CardTitle>
             </CardHeader>
           </Card>
+
+          <Card>
+  <CardHeader className="pb-3">
+    <CardTitle className="text-lg">SQL Admin Console</CardTitle>
+    <a
+      href="http://localhost:5050"
+      target="_blank"
+      className="text-blue-600 underline"
+    >
+      Open GUI →
+    </a>
+  </CardHeader>
+</Card>
+
 
           <Card>
             <CardHeader className="pb-3">
@@ -461,7 +477,7 @@ export default function AdminPage() {
 
                 <div className="text-right">
                   <div className="text-xl font-bold">
-                    ${tx.totalamount.toLocaleString()}
+                    ${(Number(tx.amountpaid) || 0).toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Student ID: {tx.studentid}
@@ -473,7 +489,7 @@ export default function AdminPage() {
               <div className="space-y-2 border-t border-border pt-3 mt-3">
                 <div className="text-sm font-medium">Courses Paid For:</div>
 
-                {tx.courses.map((c) => (
+                {(tx.courses || []).map((c) => (
                   <div
                     key={c.sectionid}
                     className="flex items-center justify-between text-sm text-muted-foreground"

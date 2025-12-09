@@ -42,8 +42,12 @@ export default function ProfilePage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    loadProfile("S001")
-  }, [])
+  const storedId = localStorage.getItem("studentId")
+  if (!storedId) return
+
+  loadProfile(storedId)
+}, [])
+
 
   async function loadProfile(studentId: string) {
     try {

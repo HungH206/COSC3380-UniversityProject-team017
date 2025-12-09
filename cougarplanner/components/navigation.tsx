@@ -75,7 +75,7 @@ export function Navigation({ isAdmin = false }: { isAdmin?: boolean }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem 
-                  onClick={() => router.push(isAdmin ? "/admin/profile" : "/profile")}
+                  onClick={() => router.push(isAdmin ? "/profile" : "/profile")}
                   className="flex items-center gap-2 cursor-pointer"
                 >
                   <User className="h-4 w-4" />

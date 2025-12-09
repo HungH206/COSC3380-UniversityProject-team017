@@ -18,6 +18,7 @@ async function initSchema() {
   const client = await pool.connect();
   try {
     console.log("🗄️  Checking database tables...");
+    console.log("⏳ This may take a moment...");
 
 
 // Reset sequences to ensure consistent IDs
@@ -36,7 +37,7 @@ await client.query(`
       CREATE SEQUENCE semester_seq START 1;
       CREATE SEQUENCE schedule_seq START 1;
       CREATE SEQUENCE instructor_seq START 1;
-      CREATE SEQUENCE payment_seq START 1;
+       CREATE SEQUENCE payment_seq START 1;
     `);
 
     // 1/ Student test table
@@ -294,17 +295,21 @@ INSERT INTO SectionSchedule(SectionID, ScheduleID) VALUES
 
   // 10. Enrollments table
     await client.query(`
-      DROP TABLE IF EXISTS Enrollments CASCADE;
-      CREATE TABLE IF NOT EXISTS Enrollments (
-        EnrollmentID SERIAL PRIMARY KEY,
-        StudentID CHAR(10) REFERENCES Student(StudentID),
-        SectionID CHAR(10) REFERENCES Section(SectionID),
-        Enrollment_status VARCHAR(20) DEFAULT 'enrolled',
-        Enroll_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        Grade CHAR(2)
-      );
+DROP TABLE IF EXISTS Enrollments CASCADE;
+CREATE TABLE IF NOT EXISTS Enrollments (
+  EnrollmentID SERIAL PRIMARY KEY,
+  StudentID CHAR(10) REFERENCES Student(StudentID),
+  SectionID CHAR(10) REFERENCES Section(SectionID),
+  Enrollment_status VARCHAR(20) DEFAULT 'enrolled',
+  Enroll_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  Grade CHAR(2)
+);
 
-    `);
+-- ALTER TABLE Enrollments
+-- ADD CONSTRAINT uq_student_section UNIQUE(StudentID, SectionID);
+
+`);
+
 
 
  // 11. Payment (Transactions) table
@@ -317,6 +322,10 @@ await client.query(`
         Amount_paid DECIMAL(10, 2),
         Pay_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+--        ALTER TABLE Payment
+--  ADD CONSTRAINT uq_payment_student UNIQUE(StudentID);
+
     `);
 
 
@@ -333,12 +342,17 @@ await client.query(`
 
 */
     console.log("All tables verified / created successfully.");
+    
+    // Verify data exists
+    const studentCount = await client.query('SELECT COUNT(*) FROM Student');
+    const courseCount = await client.query('SELECT COUNT(*) FROM Course');
+    console.log(`📊 Database contains ${studentCount.rows[0].count} students and ${courseCount.rows[0].count} courses`);
   } catch (err) {
-    console.error("Error initializing database schema:", err);
+    console.error("❌ Error initializing database schema:", err);
   } finally {
     client.release();
   }
 }
 
-// Run automatically on backend start
-initSchema();
+// Run automatically on backend start (uncomment to run when reset db)
+ initSchema();

@@ -400,6 +400,8 @@ app.post("/api/gui/query", async (req, res) => {
   }
 });
 
+
+
 // --- Start server ---
 app.listen(port, () => {
   console.log(`🔵 Admin SQL GUI running at: http://localhost:${port}`);

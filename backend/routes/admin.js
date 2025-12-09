@@ -4,51 +4,61 @@ import { pool } from "../db.js";
 const router = express.Router();
 
 /* ======================================================================
-   1. ADMIN TRANSACTION LOG
+   1. ADMIN TRANSACTION LOG (CORRECT REVENUE + COURSE MAPPING)
    ====================================================================== */
 router.get("/transactions", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT
+        p.PaymentID,
         p.StudentID,
         s.StudentName,
-        p.Amount_paid AS totalamount,
+        p.Amount_paid AS amountpaid,
         p.Pay_date,
-        'Completed' AS status,
-        json_agg(
-          json_build_object(
-            'courseid', c.CourseID,
-            'coursename', c.CourseName,
-            'credits', c.Credits,
-            'price', c.Cost,
-            'sectionid', e.SectionID
+        (
+          SELECT json_agg(
+            json_build_object(
+              'courseid', c.CourseID,
+              'coursename', c.CourseName,
+              'credits', c.Credits,
+              'price', c.Cost,
+              'sectionid', e.SectionID
+            )
           )
+          FROM Enrollments e
+          JOIN Section sec ON sec.SectionID = e.SectionID
+          JOIN Course c ON c.CourseID = sec.CourseID
+          WHERE e.StudentID = p.StudentID
+            AND e.Enrollment_status = 'Enrolled'
+            AND e.Enroll_date <= p.Pay_date
         ) AS courses
       FROM Payment p
       JOIN Student s ON s.StudentID = p.StudentID
-      JOIN Enrollments e ON e.StudentID = p.StudentID AND e.Enrollment_status = 'Enrolled'
-      JOIN Section sec ON sec.SectionID = e.SectionID
-      JOIN Course c ON c.CourseID = sec.CourseID
       WHERE p.Amount_paid > 0
-      GROUP BY 
-        p.StudentID,
-        s.StudentName,
-        p.Amount_paid,
-        p.Pay_date
       ORDER BY p.Pay_date DESC;
     `);
 
-    res.json({ transactions: result.rows });
-  } catch (error) {
-    console.error("Transaction Query Error:", error);
-    res.status(500).json({ error: error.message });
+    // Format student names properly
+    const transactions = result.rows.map(row => ({
+      paymentid: row.paymentid,
+      studentid: row.studentid,
+      studentname: row.studentname?.trim() || "",
+      amountpaid: Number(row.amountpaid) || 0,
+      pay_date: row.pay_date,
+      status: "Completed",
+      courses: row.courses || []
+    }));
+
+    res.json({ transactions });
+  } catch (err) {
+    console.error("Transaction Query Error:", err);
+    res.status(500).json({ error: "Failed to load transactions" });
   }
 });
 
+
+
 /* ======================================================================
-<<<<<<< Updated upstream
-   2. GET STUDENTS ENROLLED IN A SECTION (FOR ADMIN GRADE UI)
-=======
    2. GET ENROLLED STUDENTS FOR A COURSE
    ====================================================================== */
 router.get("/courses/:courseId/students", async (req, res) => {
@@ -79,7 +89,6 @@ router.get("/courses/:courseId/students", async (req, res) => {
 
 /* ======================================================================
    3. UPDATE SECTION (Open/Close + Add Seats)
->>>>>>> Stashed changes
    ====================================================================== */
 router.get("/students", async (req, res) => {
   const { sectionId } = req.query;
@@ -112,11 +121,7 @@ router.get("/students", async (req, res) => {
 
 
 /* ======================================================================
-<<<<<<< Updated upstream
-   3. CONCURRENCY SAFE SECTION UPDATE
-=======
-   4. POST GRADES FOR ALL STUDENTS IN A SECTION
->>>>>>> Stashed changes
+   3. CONCURRENCY SAFE SECTION UPDATE IN A SECTION
    ====================================================================== */
 router.post("/sections/update", async (req, res) => {
   const { sectionId, capacity, status } = req.body;

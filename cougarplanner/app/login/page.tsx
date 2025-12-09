@@ -2,137 +2,86 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import Image from "next/image"
-import { ArrowLeft } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter()
+  const [studentId, setStudentId] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    studentId: "",
-    password: "",
-  })
+  const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+  const handleLogin = async () => {
+    setLoading(true)
     try {
-      const response = await fetch("/api/auth/login", {
+      const res = await fetch("http://localhost:3001/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ studentId, password }),
       })
 
-      const data = await response.json()
+      const data = await res.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to login")
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed")
       }
 
-      // Store student data in localStorage (in production, use proper session management)
-      localStorage.setItem("student", JSON.stringify(data.student))
+      // Save to localStorage with only what's needed and consistent with rest of app
+localStorage.setItem("studentId", data.student.studentId)
+localStorage.setItem("studentName", data.student.studentName)
 
       toast({
-        title: "Success",
-        description: "Login successful!",
+        title: "Logged in",
+        description: `Welcome, ${data.student.studentName}`,
       })
 
       router.push("/profile")
-    } catch (error: any) {
-      console.error("[v0] Login error:", error)
+    } catch (err: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to login",
+        title: "Login failed",
+        description: err.message || "Check your ID and password",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Return to Homepage
-        </Link>
-
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center">
-            <Image src="/logo.png" alt="CougarPlanner Logo" width={96} height={96} />
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Student Login</CardTitle>
+          <CardDescription>Sign in to access your courses and payments</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="block text-sm mb-1">Student ID</label>
+            <Input
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              placeholder="e.g. S001"
+            />
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-balance">Welcome Back</h2>
-          <p className="mt-2 text-sm text-muted-foreground text-pretty">Login to access your student portal</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>Enter your credentials to access your account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="studentId">Student ID</Label>
-                <Input
-                  id="studentId"
-                  name="studentId"
-                  placeholder="STU001"
-                  value={formData.studentId}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </form>
-
-            <div className="mt-4 text-center text-sm">
-              Don't have an account?{" "}
-              <Link href="/signup" className="font-medium text-primary hover:underline">
-                Sign up
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div>
+            <label className="block text-sm mb-1">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <Button className="w-full" onClick={handleLogin} disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

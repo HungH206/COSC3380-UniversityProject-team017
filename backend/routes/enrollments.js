@@ -6,10 +6,13 @@ const router = express.Router();
 
 /* ============================================================
    GET /api/enrollments
-   → Returns all ENROLLED courses grouped by semester
 ============================================================ */
 router.get("/", async (req, res) => {
-  const studentId = req.query.studentId || "S001";
+  const studentId = req.query.studentId;
+
+  if (!studentId) {
+    return res.status(401).json({ error: "Student not authenticated" });
+  }
 
   try {
     const result = await pool.query(
@@ -43,23 +46,12 @@ router.get("/", async (req, res) => {
       [studentId]
     );
 
-    // Merge multiple schedule rows per section
+    // Merge duplicate schedule rows
     const unified = {};
-
     for (const row of result.rows) {
       const key = row.sectionid;
-
       if (!unified[key]) {
-        unified[key] = {
-          id: row.sectionid,
-          code: row.code.trim(),
-          name: row.name.trim(),
-          credits: row.credits,
-          price: Number(row.price),
-          instructor: row.instructor,
-          schedule: row.schedule,
-          semester: row.semester,
-        };
+        unified[key] = { ...row, schedule: row.schedule };
       } else {
         unified[key].schedule += " / " + row.schedule;
       }
@@ -67,15 +59,14 @@ router.get("/", async (req, res) => {
 
     // Group by semester
     const grouped = {};
-
     Object.values(unified).forEach((course) => {
       if (!grouped[course.semester]) grouped[course.semester] = [];
       grouped[course.semester].push({
-        id: course.id,
-        code: course.code,
-        name: course.name,
+        id: course.sectionid,
+        code: course.code.trim(),
+        name: course.name.trim(),
         credits: course.credits,
-        price: course.price,
+        price: Number(course.price),
         instructor: course.instructor,
         schedule: course.schedule,
       });
@@ -90,16 +81,17 @@ router.get("/", async (req, res) => {
 
 /* ============================================================
    POST /api/enrollments
-   → Optionally add enrollments manually (used by Payment Page)
+   → Enrollment only (payment handled separately)
+   ACID protected
 ============================================================ */
 router.post("/", async (req, res) => {
-  const { student_id = "S001", courses } = req.body;
+  const { student_id, courses } = req.body;
 
+  if (!student_id) return res.status(401).json({ error: "Student not authenticated" });
   if (!courses || courses.length === 0)
     return res.status(400).json({ error: "No courses provided" });
 
   const client = await pool.connect();
-
   try {
     await client.query("BEGIN");
 
@@ -108,29 +100,76 @@ router.post("/", async (req, res) => {
     for (const course of courses) {
       const sectionId = course.id;
 
+      /* Check & lock section for concurrency */
+      const seatCheck = await client.query(
+        `SELECT EnrolledCount, Capacity 
+         FROM Section 
+         WHERE SectionID = $1 
+         FOR UPDATE`,
+        [sectionId]
+      );
+
+      if (seatCheck.rowCount === 0) throw new Error("Section not found");
+
+      const { enrolledcount, capacity } = seatCheck.rows[0];
+      if (enrolledcount >= capacity)
+        throw new Error("Class is full");
+
+      /* Prerequisite validation */
+      const prereqs = await client.query(
+        `
+        SELECT PreReCourseID FROM Prerequisite
+        WHERE CourseID = (SELECT CourseID FROM Section WHERE SectionID = $1)
+        `,
+        [sectionId]
+      );
+
+      for (const prereq of prereqs.rows) {
+        const check = await client.query(
+          `
+          SELECT 1 FROM Enrollments e
+          JOIN Section sec ON sec.SectionID = e.SectionID
+          WHERE e.StudentID = $1
+          AND sec.CourseID = $2
+          AND e.Grade IS NOT NULL
+          `,
+          [student_id, prereq.prerecourseid]
+        );
+
+        if (check.rowCount === 0)
+          throw new Error(`Missing prerequisite: ${prereq.prerecourseid}`);
+      }
+
+      /* Insert or update enrollment status */
       const result = await client.query(
         `
-        UPDATE Enrollments
-        SET Enrollment_status = 'Enrolled'
-        WHERE StudentID = $1
-        AND SectionID = $2
+        INSERT INTO Enrollments (StudentID, SectionID, Enrollment_status)
+        VALUES ($1, $2, 'Enrolled')
+        ON CONFLICT (StudentID, SectionID)
+        DO UPDATE SET Enrollment_status = 'Enrolled'
         RETURNING *
         `,
         [student_id, sectionId]
       );
 
-      if (result.rowCount > 0) {
-        inserted.push(result.rows[0]);
-      }
+      /* Update enrolled count */
+      await client.query(
+        `UPDATE Section 
+         SET EnrolledCount = EnrolledCount + 1
+         WHERE SectionID = $1`,
+        [sectionId]
+      );
+
+      inserted.push(result.rows[0]);
     }
 
     await client.query("COMMIT");
-
     res.json({ success: true, enrollments: inserted });
+
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Error creating enrollments:", error);
-    res.status(500).json({ error: "Failed to update enrollments" });
+    console.error("Enroll error:", error);
+    res.status(400).json({ error: error.message || "Failed to enroll" });
   } finally {
     client.release();
   }

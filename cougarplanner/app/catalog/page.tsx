@@ -130,11 +130,17 @@ export default function CatalogPage() {
   // Add section to enrollment (Pending)
 const handleAddToCart = async (sectionId: string) => {
   try {
+    const studentId = localStorage.getItem("studentId");
+    if (!studentId) {
+      alert("Please log in first!")
+      return
+    }
+
     const response = await fetch("http://localhost:3001/api/enroll/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        studentId: "S001",
+        studentId,  // ✔ dynamic logged-in student
         sectionId,
       }),
     })
@@ -143,10 +149,11 @@ const handleAddToCart = async (sectionId: string) => {
     if (!response.ok) throw new Error(data.error)
 
     alert("Course added (Pending)")
-  } catch (err) {
-    alert(err instanceof Error ? err.message : "Failed to add")
+  } catch (err: any) {
+    alert(err.message || "Failed to add")
   }
 }
+
 
 
   return (
